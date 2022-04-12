@@ -62,8 +62,10 @@ monofont: Monaco
 ### 4. This problem has to do with the bias-variance trade-off and related ideas, in the context of regression. For (a) and (b), it’s okay to submit hand-sketched plots: you are not supposed to actually compute the quantities referred to below on data; instead, this is a thought exercise.
 
 #### (a) Make a plot, like the one we saw in class, with “flexibility” on the x-axis. Sketch the following curves: squared bias, variance, irreducible error, reducible error, expected prediction error. Be sure to label each curve. Indicate which level of flexibility is “best”.
+<div align = "center">![Bias-variance trade-off plot](IMG_0005.PNG){width=60%}</div>
 
 #### (b) Make a plot with “flexibility” on the x-axis. Sketch curves corresponding to the training error and the test error. Be sure to label each curve. Indicate which level of flexibility is “best”.
+<div align = "center">![Training and test error plot](IMG_0006.PNG){width=60%}</div>
 
 #### (c) Describe an $\hat{f}$ that has extremely low bias, and extremely high variance. Explain your answer.
 An $\hat{f}$ that passes very closely through each point in the training data will have extremely low bias and extremely high variance. This is because the bias is the difference between the true value and estimated value (which in this case will be low for the model we describe). The variance will be high because for a different training set, the $\hat{f}$ will look very different, as it depends highly on what training data is observed.
