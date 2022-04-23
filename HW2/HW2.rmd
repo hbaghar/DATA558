@@ -1,79 +1,206 @@
 ---
-title: 'Homework #2'
-output: pdf_document
+title: 'DATA 558: HW Assignment 2'
+author: "Hriday Baghar"
+date: "April 27, 2022"
+output:
+  html_notebook: default
+  pdf_document: 
+    latex_engine: xelatex
+mainfont: Helvetica
+monofont: Monaco
 ---
+
+```{r, message=FALSE}
+#Import all libraries here
+library(ISLR2)
+library(knitr)
+library(dplyr)
+
+```
+
 
 ## 1. In this problem, we will make use of the Auto data set, which is part of the ISLR2 package.
 
 ### (a) Fit a least squares linear model to the data, in order to predict mpg using all of the other predictors except for name. Present your results in the form of a table. Be sure to indicate clearly how any qualitative variables should be interpreted.
 
-TODO
+QUESTION: SHOULD WE HAVE YEAR AS A FACTOR?
+
+```{r}
+data <- Auto
+data <- data |> select(-name)
+data$origin <- as.factor(data$origin)
+
+model.1a <- lm(mpg ~. , data = data)
+kable(summary(model.1a)$coef)
+```
+The `origin` variable is encoded as - 1. American, 2. European, 3. Japanese. In the above linear model, 1 is set as a reference value. Therefore, the interpretation for the origin coefficients is in comparison to the reference value. The comparisons we can make through these estimates are American vs European and American vs Japanese.
 
 ### (b) What is the (training set) mean squared error of this model?
 
-TODO
+The training MSE can be calculated as the mean of square of model residuals.
+```{r}
+mean(model.1a$residuals^2)
+```
 
 ### (c) What gas mileage do you predict for a Japanese car with three cylinders, displacement 100, horsepower of 85, weight of 3000, acceleration of 20, built in the year 1980?
 
-TODO
+```{r}
+predict(model.1a, 
+        data.frame(
+          origin = as.factor(3),
+          cylinders = 3,
+          displacement = 100,
+          horsepower = 85,
+          weight = 3000,
+          acceleration = 20,
+          year = 80
+        ))
+```
 
 ### (d) On average, holding all other covariates fixed, what is the difference between the mpg of a Japanese car and the mpg of an American car?
 
-TODO
+Japanese cars have 2.85 MPG more on average than American cars, holding all other variables constant.
 
 ### (e) On average, holding all other covariates fixed, what is the change in mpg associated with a 10-unit change in horsepower?
 
-TODO
+Holding all other variables constant, a 10-unit increase in horsepower will cause a -0.182 unit change (decrease) in MPG.
 
 ## 2. Consider using only the origin variable to predict mpg on the Auto data set. In this problem, we will explore the coding of this qualitative variable.
 
 ### (a) First, code the origin variable using two dummy (indicator) variables, with Japanese as the default value. Write out an equation like (3.30) in the textbook, and report the coefficient estimates. What is the predicted mpg for a Japanese car? for an American car? for a European car?
 
-TODO
+```{r}
+data$origin <- relevel(data$origin, ref="3")
+contrasts(data$origin)
+summary(lm(mpg ~ origin, data=data))
+```
+$$
+\begin{equation}
+\begin{split}
+MPG_{Japan} &= \beta_0 = 30.4506 \\
+MPG_{USA} &= \beta_0 + \beta_1 = 30.4506 - 10.4172 = 20.0334 \\
+MPG_{Europe} &= \beta_0 + \beta_2 = 30.4506 - 2.8477 = 27.6029
+\end{split}
+\end{equation}
+$$
 
 ### (b) Now, code the origin variable using two dummy (indicator) variables, with American as the default. Write out an equation like (3.30) in the textbook, and report the coefficient estimates. What is the predicted mpg for a Japanese car? for an American car? for a European car?
 
-TODO
+```{r}
+data$origin <- relevel(data$origin, ref="1")
+contrasts(data$origin)
+summary(lm(mpg ~ origin, data=data))
+```
+
+$$
+\begin{equation}
+\begin{split}
+MPG_{USA} &= \beta_0 = 20.0335 \\
+MPG_{Japan} &= \beta_0 + \beta_1 = 20.0335 + 10.4172 = 30.4507 \\
+MPG_{Europe} &= \beta_0 + \beta_2 = 20.0335 + 7.5695 = 27.603
+\end{split}
+\end{equation}
+$$
 
 ### (c) Now, code the origin variable using two variables that take on values of +1 or -1. Write out an equation like (3.30) in the textbook, and report the coefficient estimates. What is the predicted mpg for a Japanese car? for an American car? for a European car?
 
-TODO
+```{r}
+usa <- c(-1,-1)
+jpn <- c(1,-1)
+eur <- c(-1,1)
+
+mat.temp <- rbind(usa, jpn, eur)
+rownames(mat.temp) <- c(1,3,2)
+colnames(mat.temp) <- c(3,2)
+
+(contrasts(data$origin) <- mat.temp)
+summary(lm(mpg ~ origin, data = data))
+```
+$$
+\begin{equation}
+\begin{split}
+MPG_{USA} &= \beta_0 -\beta_1 -\beta_2 = 29.0268 -5.2086 -3.7847 = 20.0335 \\
+MPG_{Japan} &= \beta_0 + \beta_1 - \beta_2 = 29.0268 + 5.2086 -3.7847 = 30.4507 \\
+MPG_{Europe} &= \beta_0 -\beta_1 + \beta_2 = 29.0268 -5.2086 + 3.7847 = 27.6029
+\end{split}
+\end{equation}
+$$
 
 ### (d) Finally, code the origin variable using a single variable that takes on values of 0 for Japanese, 1 for American, and 2 for European. Write out an equation like (3.30) in the textbook, and report the coefficient estimates. What is the predicted mpg for a Japanese car? for an American car? for a European car?
 
-TODO
+```{r}
+
+data$origin <- as.numeric(as.character(data$origin))
+data$origin.num <- ifelse(data$origin == 3, 0, data$origin)
+summary(lm(mpg ~ origin.num, data=data))
+```
+
 
 ### (e) Comment on your results in (a)-(d).
 
-TODO
+TODO:
+
+- Write results for d
+- Summarize everything in e
+
+- Check values for part c and d. Explain why they should be off.
 
 ## 3. Fit a model to predict mpg on the Auto dataset using origin and horsepower, as well as an interaction between origin and horsepower. Present your results, and write out an equation like (3.35) in the textbook. On average, how much does the mpg of a Japanese car change with a one-unit increase in horsepower? How about the mpg of an American car? a European car?
 
-TODO
+```{r}
+data$origin <- as.factor(data$origin)
+summary(lm(mpg ~ origin*horsepower, data = data))
+```
+
+TODO:
+
+- Read interaction terms and learn how to perform calculations
 
 ## 4. Consider using least squares linear regression to predict weight (Y) using height.
 
 ### (a) Suppose that you measure height in inches ($X_1$), fit the model $Y = \beta_0 + \beta_1X_1 + \epsilon$, and obtain the coefficient estimates $\hat{\beta}_0 = -165.1$ and $\hat{\beta}_1 = 4.8$. What weight will you predict for an individual who is 64 inches tall?
 
-TODO
+$$
+Y = \beta_0 + \beta_1X_1 = -165.1 + 4.8\times64 = 142.1
+$$
 
 ### (b) Now suppose that you want to measure height in feet ($X_2$) instead of inches. (There are 12 inches to a foot.) You fit the model $Y = \beta^*_0 + \beta^*_1X_2 + \epsilon$. What are the coefficient estimates? What weight will you predict for an individual who is 64 inches tall (i.e. 5.333 feet)?
 
-TODO
+$$
+Y = \beta_0^* + \beta_1^*X_1 = -165.1+4.8\times12\times5.333 = 142.08
+$$
 
 ### (c) Now suppose you fit the model $Y = \beta_0 + \beta_1X_1 + \beta_2X_2 + \epsilon$, which contains both height in inches and height in feet as predictors. Provide a general expression for the least squares coefficient estimates for this model.
 
-TODO
+TODO:
+
+- How to compute?
 
 ### (d) How do the (training set) mean squared errors compare for three models fit in (a)–(c)?
 
-TODO
+TODO:
+
+- a and b should be the same?
+- What about c?
 
 ## 5. Suppose we wish to perform classification of a binary response in a setting with $p = 1$: that is, $X \in \mathbb{R}$, and $Y \in \{1, 2\}$. We assume that the observations in Class 1 are drawn from a $N(\mu, \sigma^2)$ distribution, and that the observations in Class 2 are drawn from an $Uniform[-2, 2]$ distribution.
 
 ### (a) Derive an expression for the Bayes decision boundary: that is, for the set of $x$ such that $P(Y = 1 | X = x) = P(Y = 2 | X = x)$. Write it out as simply as you can.
 
-TODO
+$$
+\begin{equation}
+\begin{split}
+P(Y=1|X=x) & = P(Y=2|X=x) \\
+P(X=x|Y=1)P(Y=1) & = P(X=x|Y=2)P(Y=2) \\
+\frac{1}{\sqrt{2\pi}\sigma}e^{-\frac{(x-\mu)^2}{2\sigma^2}}\pi_1 &= \frac{1}{4}\pi_2\\
+e^-{\frac{(x-\mu)^2}{2\sigma^2}} & =\frac{\pi_2}{\pi_1}\frac{\sqrt{2\pi}\sigma}{4}
+\end{split}
+\end{equation}
+$$
+
+TODO:
+
+- Find out if this is correct
 
 ### (b) Suppose (for this sub-problem only) that $\mu = 0$, $\sigma = 1$, $\pi_1 = 0.45$ (here, $\pi_1$ is the prior probability that an observation belongs to Class 1). Describe the Bayes classifier in this case: what range of $x$ values will get assigned to Class 1, and what range of $x$ values will get assigned to Class 2? Write out your answer as simply as you can. Draw a picture showing the set of $x$ values assigned to Class 1 and the set of $x$ values assigned to Class 2.
 
