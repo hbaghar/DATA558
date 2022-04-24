@@ -15,7 +15,9 @@ monofont: Monaco
 library(ISLR2)
 library(knitr)
 library(dplyr)
-
+library(MASS)
+library(ggplot2)
+library(klaR)
 ```
 
 
@@ -23,11 +25,9 @@ library(dplyr)
 
 ### (a) Fit a least squares linear model to the data, in order to predict mpg using all of the other predictors except for name. Present your results in the form of a table. Be sure to indicate clearly how any qualitative variables should be interpreted.
 
-QUESTION: SHOULD WE HAVE YEAR AS A FACTOR?
-
 ```{r}
 data <- Auto
-data <- data |> select(-name)
+data <- data |> dplyr::select(-name)
 data$origin <- as.factor(data$origin)
 
 model.1a <- lm(mpg ~. , data = data)
@@ -134,7 +134,15 @@ data$origin <- as.numeric(as.character(data$origin))
 data$origin.num <- ifelse(data$origin == 3, 0, data$origin)
 summary(lm(mpg ~ origin.num, data=data))
 ```
-
+$$
+\begin{equation}
+\begin{split}
+MPG_{Japan} &= \beta_0 = 25.2395 \\
+MPG_{USA} &= \beta_0 + \beta_1  = 25.2395 - 1.8453 =23.3942\\
+MPG_{Europe} &= \beta_0 + 2\beta_1 = 25.2395 - 2 \times1.8453 = 21.5489\\
+\end{split}
+\end{equation}
+$$
 
 ### (e) Comment on your results in (a)-(d).
 
@@ -155,6 +163,11 @@ summary(lm(mpg ~ origin*horsepower, data = data))
 TODO:
 
 - Read interaction terms and learn how to perform calculations
+
+```{r, echo=FALSE}
+#Cleanup
+rm(list = ls())
+```
 
 ## 4. Consider using least squares linear regression to predict weight (Y) using height.
 
@@ -193,7 +206,8 @@ $$
 P(Y=1|X=x) & = P(Y=2|X=x) \\
 P(X=x|Y=1)P(Y=1) & = P(X=x|Y=2)P(Y=2) \\
 \frac{1}{\sqrt{2\pi}\sigma}e^{-\frac{(x-\mu)^2}{2\sigma^2}}\pi_1 &= \frac{1}{4}\pi_2\\
-e^-{\frac{(x-\mu)^2}{2\sigma^2}} & =\frac{\pi_2}{\pi_1}\frac{\sqrt{2\pi}\sigma}{4}
+e^-{\frac{(x-\mu)^2}{2\sigma^2}} & =\frac{\pi_2}{\pi_1}\frac{\sqrt{2\pi}\sigma}{4}\\
+-(x-\mu)^2 &= 2\sigma^2log(\frac{\pi_2}{\pi_1}\frac{\sqrt{2\pi}\sigma}{4})
 \end{split}
 \end{equation}
 $$
@@ -204,47 +218,155 @@ TODO:
 
 ### (b) Suppose (for this sub-problem only) that $\mu = 0$, $\sigma = 1$, $\pi_1 = 0.45$ (here, $\pi_1$ is the prior probability that an observation belongs to Class 1). Describe the Bayes classifier in this case: what range of $x$ values will get assigned to Class 1, and what range of $x$ values will get assigned to Class 2? Write out your answer as simply as you can. Draw a picture showing the set of $x$ values assigned to Class 1 and the set of $x$ values assigned to Class 2.
 
-TODO
+$$
+-x^2 = 2log(\frac{0.55}{0.45}\frac{\sqrt{2\pi}}{4}) = -0.533 \\
+x = ± 0.73
+$$
+TODO:
+
+- Find out if this is correct
 
 ### (c) Now suppose we observe $n$ training observations $(x_1, y_1),...,(x_n, y_n)$. Explain how you could use these observations to _estimate_ $\mu$, $\sigma$, and $\pi_1$ (instead of using the values that were given in part (b)).
 
-TODO
+If we were given $n$ training observations we could estimate $\mu$, $\sigma$ and $\pi_1$ as follows:
+
+$$
+\mu = \frac{1}{n_1} \sum_{i: y_i =1} x_i
+$$
+
+$$
+\sigma = \sqrt{\frac{1}{n_1-1}\sum_{i:y_i=1}(x_i - \mu)^2}
+$$
+$$
+\pi_1 = \frac{n_1}{n}
+$$
+
+where $n_1$ is the number of training examples belonging to Class 1, n is the total number of training examples.
 
 ### (d) Given a test observation $X = x_0$, provide an estimate of $P(Y = 1 | X = x_0)$. Your answer should involve only the training observations $(x_1, y_1),...,(x_n, y_n)$ and the test observation $x_0$, and _no_ unknown parameters.
 
-TODO
+$$
+P(Y=1|X=x_0) = \frac{\frac{1}{\sqrt{2\pi}\sigma}e^{-\frac{(x_0-\mu)^2}{2\sigma^2}}\pi_1}{\frac{1}{\sqrt{2\pi}\sigma}e^{-\frac{(x_0-\mu)^2}{2\sigma^2}}\pi_1 + \frac{1}{4}(1-\pi_1)}
+$$
+TODO:
+
+- Check if this is correct
 
 ## 6. This problem has to do with logistic regression.
 
 ### (a) Suppose you fit a logistic regression to some data and find that for a given observation $x = (x_1,...,x_p)^T$, the estimated log-odds equals 0.7. What is $P(Y = 1 | X = x)$?
 
-TODO
+$$
+Let \ P(x) = P(Y=1|X=x)\\
+\begin{equation}
+\begin{split}
+\implies log(\frac{P(x)}{1-P(x)}) &= 0.7\\
+\frac{P(x)}{1-P(x)} &= 2.013 \\
+P(Y=1|X=x) &=\frac{2.013}{3.013} = 0.668
+\end{split}
+\end{equation}
+$$
 
 ### (b) In the same setting as (a), suppose you are now interested in the observation $x^* = (x_1 + 1, x_2 - 1, x_3 + 2, x_4, ..., x_p)^T$. In other words, $x^*_1 = x_1 + 1$, $x^*_2 = x_2 - 1$, $x^*_3 = x_3 + 2$, and $x^*_j = x_j$ for $j = 4,...,p$. Write out a simple expression for $P(Y = 1 | X = x^*)$. Your answer will involve the estimated coefficients in the logistic regression model, as well as the number 0.7.
 
-TODO
+$$
+Let \ P(x^*) = P(Y=1|X=x^*)\\
+\begin{equation}
+\begin{split}
+\implies log(\frac{P(x*)}{1-P(x*)}) &= \beta_0+\beta_1x_1^*+\beta_2x_2^*+\beta_3x_3^*+\beta_4x_4+...\beta_px_p\\
+\frac{P(x*)}{1-P(x*)} &= e^{\beta_0+\beta_1(x_1+1)+\beta_2(x_2-1)+\beta_3(x_3+2)+\beta_4x_4+...\beta_px_p}\\
+\frac{P(x*)}{1-P(x*)} &= e^{\beta_1-\beta_2+2\beta_3}.e^{\beta_0+\beta_1x_1+...\beta_px_p}\\
+\frac{P(x*)}{1-P(x*)} &= e^{\beta_1-\beta_2+2\beta_3+0.7}\ \\&(\because \beta_0+\beta_1x_1+...\beta_px_p\ is\ log \ odds \ for \ observation \ x)\\
+\therefore P(Y=1|X=x^*) &= \frac{e^{\beta_1-\beta_2+2\beta_3+0.7}}{1+e^{\beta_1-\beta_2+2\beta_3+0.7}}
+\end{split}
+\end{equation}
+$$
 
 ## 7. In this problem, you will generate data with $p = 2$ features and a qualitative response with $K = 3$ classes, and $n = 50$ observations per class. You will then apply linear discriminant analysis to the data.
 
 ### (a) Generate data such that the distribution of an observation in the $k$th class follows a $N(\mu_k,\Sigma)$ distribution, for $k = 1,...,K$. That is, the data follow a bivariate normal distribution with a mean vector $\mu_k$ that is specific to the $k$th class, and a covariance matrix $\Sigma$ that is shared across the $K$ classes. Choose $\Sigma$ and $\mu_1,...,\mu_K$ such that there is some overlap between the $K$ classes, i.e. no linear decision boundary is able to perfectly separate the training data. Specify your choices for $\Sigma$ and $\mu_1,...,\mu_K$.
 
-TODO
+```{r}
+set.seed(558)
+
+K <-  3
+p <-  2
+sigma <- diag(p)*2+0.9-diag(p)-0.1
+mu.1 <- c(0,-1)
+mu.2 <- c(3,1)
+mu.3 <- c(-3, 1)
+
+X <- lapply(list(mu.1, mu.2, mu.3), function(x) as.matrix(mvrnorm(50, x, sigma)))
+X <- rbind(as.matrix(X[[1]]), as.matrix(X[[2]]), as.matrix(X[[3]]))
+y <- cbind(c(rep(1,50),rep(2,50),rep(3,50)))
+
+data <- data.frame(X,Class=as.factor(y))
+```
+
 
 ### (b) Plot the data, with the observations in each class displayed in a different color. Compute and display the Bayes decision boundary (or Bayes decision boundaries) on this plot. This plot should look something like the right-hand panel of Figure 4.6 in the textbook (although no need to worry about shading the background, and also you don’t need to display the LDA decision boundary for this sub-problem — you will do that in the next sub-problem). Be sure to label which region(s) of the plot correspond to each class.
 
-TODO
+Since all the groups have the same covariance matrix, the Bayes' decision boundary between two classes should be a straight line that is equidistant from both the means. Below are the equations for the decision boundaries between:
+
+- Class 1 and Class 3: $x_2 = 1.5(x_1 + 1.5)$
+- Class 1 and Class 2: $x_2 = -1.5(x_1 - 1.5)$
+- Class 2 and Class 3: $x_2 = 0$
+
+```{r}
+#Writing a function to get the decision boundary
+get.bayes.boundary <- function(from, to, by=0.5, m, p){
+ x1 <- seq(from, to, by)
+ x2 <- m*(x1-p)
+ 
+ return(data.frame(cbind(x1,x2)))
+}
+
+l.13 <- get.bayes.boundary(-3.5, 0, m=1.5, p=-1.5)
+l.12 <- get.bayes.boundary(0, 3.5, m = -1.5, p=1.5)
+l.23 <- data.frame(x1 = c(0,0), x2 =c (2.25,4))
+```
+
+
+```{r}
+ggplot(data, aes(x=X1, y=X2, color=Class))+
+  geom_point()+
+  geom_line(data = l.13, aes(x=x1, y=x2), inherit.aes = FALSE, linetype="dashed")+
+  geom_line(data = l.12, aes(x=x1, y=x2), inherit.aes = FALSE, linetype="dashed")+
+  geom_line(data = l.23, aes(x=x1, y=x2), inherit.aes = FALSE, linetype="dashed")
+```
+
 
 ### (c) Fit a linear discriminant analysis model to the data, and make a plot that displays the observations as well as the decision boundary (or boundaries) corresponding to this fitted model. How does the LDA decision boundary (which can be viewed as an estimate of the Bayes decision boundary) compare to the Bayes decision boundary that you computed and plotted in (b)?
+```{r}
+(lda.fit <- lda(Class ~ ., data = data))
+partimat(Class ~ X2+X1, data = data, method="lda")
+```
+TODO:
 
-TODO
+- Writeup
 
 ### (d) Report the $K x K$ confusion matrix for the LDA model on the training data. The rows of this confusion matrix represent the predicted class labels, and the columns represent the true class labels. (See Table 4.4 in the textbook for an example of a confusion matrix.) Also, report the training error (i.e. the proportion of training observations that are misclassified).
-
-TODO
+```{r}
+preds <- predict(lda.fit, data[,-3])
+table(preds$class, data$Class)
+```
+Training error = `r sum(preds$class != data$Class)/nrow(data)`
 
 ### (e) Generate $n = 50$ test observations in each of the $K$ classes, using the bivariate normal distributions from (a). Report the $K x K$ confusion matrix, as well as the test error, that results from applying the model fit to the training data in (c) to your test data.
 
-TODO
+```{r}
+X <- lapply(list(mu.1, mu.2, mu.3), function(x) as.matrix(mvrnorm(50, x, sigma)))
+X <- rbind(as.matrix(X[[1]]), as.matrix(X[[2]]), as.matrix(X[[3]]))
+y <- cbind(c(rep(1,50),rep(2,50),rep(3,50)))
+
+test <- data.frame(X, Class=y)
+```
+
+```{r}
+test.preds <- predict(lda.fit, test[,-3])
+table(test.preds$class, test$Class)
+```
+Test error = `r sum(test.preds$class != test$Class)/nrow(data)`
 
 ### (f) Compare your results from (d) and (e), and comment on your findings.
 
@@ -254,15 +376,29 @@ TODO
 
 ### (a) Fit a quadratic discriminant analysis model to the training data from Q7,and make a plot that displays the observations as well as the QDA decision boundary (or boundaries) corresponding to this fitted model. Be sure to label which region(s) of the plot correspond to each class. How does the QDA decision boundary compare to the Bayes decision boundary that you computed in Q7(b)?
 
-TODO
+```{r}
+(qda.fit <- qda(Class ~ ., data = data))
+partimat(Class ~ X2+X1, data=data, method="qda")
+```
+TODO:
+
+- Add annotation to graph if possible
 
 ### (b) Report the $K x K$ confusion matrix for the QDA model on the training data, as well as the training error.
 
-TODO
+```{r}
+qda.preds <- predict(qda.fit, data[,-3])
+table(qda.preds$class, data$Class)
+```
+Training error = `r sum(qda.preds$class != data$Class)/nrow(data)`
 
 ### (c) Repeat (b), but this time using the test data generated in Q7. (That is, apply the model fit to the training data in (a) in order to calculate the test error.)
 
-TODO
+```{r}
+test.preds.qda <- predict(qda.fit, test[,-3])
+table(test.preds.qda$class, test$Class)
+```
+Test error = `r sum(test.preds.qda$class != test$Class)/nrow(data)`
 
 ### (d) Compare your results in (b) and (c), and comment on your findings.
 
