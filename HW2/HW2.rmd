@@ -3,9 +3,9 @@ title: 'DATA 558: HW Assignment 2'
 author: "Hriday Baghar"
 date: "April 27, 2022"
 output:
-  html_notebook: default
   pdf_document: 
     latex_engine: xelatex
+  html_notebook: default
 mainfont: Helvetica
 monofont: Monaco
 ---
@@ -164,7 +164,7 @@ MPG_i = \beta_0+\beta_3\times horsepower_i+
 \end{cases}
 $$
 
-For a 1-unit change in horsepower, we get the change in MPG as:
+For a 1-unit change in horsepower, we get the average change in MPG as:
 
 $$
 \Delta MPG_i =
@@ -196,16 +196,16 @@ $$
 $$
 This is only slightly off from (a) due to imprecision in the value 5.333
 
-### (c) Now suppose you fit the model $Y = \beta_0 + \beta_1X_1 + \beta_2X_2 + \epsilon$, which contains both height in inches and height in feet as predictors. Provide a general expression for the least squares coefficient estimates for this model.
+### (c) Now suppose you fit the model $Y = \beta_0 + \beta_1X_1 + \beta_2X_2 + \varepsilon$, which contains both height in inches and height in feet as predictors. Provide a general expression for the least squares coefficient estimates for this model.
 
 Let us assume that the equation using both height in inches and feet is
-\begin{equation}
+\begin{equation*}
 \begin{split}
-Y = \beta_0' + \beta_1'X_1+ \beta_2'X_2\\
+\hat{Y} = \beta_0' + \beta_1'X_1+ \beta_2'X_2\\
 = \beta_0'+\beta_1'X_1+\frac{\beta_2}{12}'X_1\\
 = \beta_0'+(\beta_1'+\frac{\beta_2'}{12})X_1
 \end{split}
-\end{equation}
+\end{equation*}
 
 This equation is similar to the equation that only uses height in inches,
 $$
@@ -247,9 +247,9 @@ x = ± 0.73
 $$
 The decision boundary will be at $x = ±0.73$. We know that for a uniform distribution, the probability density is constant for all values in the range of the distribution. In this case the probability density is $\frac{1}{2-(-2)} = 0.25$. We know that for a standard normal distribution, the peak is `r round(dnorm(0),2)`.
 
-Which means that for values between $x = ±0.73$ values will fall into Class 1. For Class 2, all values in the range $[-2, -0.73) \cup (0.73, 2]$belong to Class 2. However, we must note that values $(-\infty, 2) \cup (2,\infty)$ will have a higher probability density for Class 1, which means these values will belong to Class 1 (because a uniform distribution has 0 density outside of the specified range). 
+Which means that for values between $x = ±0.73$ values will fall into Class 1. For Class 2, all values in the range $[-2, -0.73) \cup (0.73, 2]$belong to Class 2. However, we must note that values $(-\infty, 2) \cup (2,\infty)$ will have a higher probability density for Class 1, which means these values will belong to Class 1 (because a uniform distribution has 0 density outside of the specified range). Refer Figure 1 for illustration of this.
 
-![](Q5b_Figure.png){width=70%}
+![Figure indicating range of values that will be assigned to Class 1 and Class 2](Q5b_Figure.png){width=70%}
 
 ### (c) Now suppose we observe $n$ training observations $(x_1, y_1),...,(x_n, y_n)$. Explain how you could use these observations to _estimate_ $\mu$, $\sigma$, and $\pi_1$ (instead of using the values that were given in part (b)).
 
@@ -260,8 +260,11 @@ $$
 $$
 
 $$
-\hat{\sigma} = \sqrt{\frac{1}{n_1-1}\sum_{i:y_i=1}(x_i - \mu)^2}
+\hat{\sigma} = \sqrt{\frac{1}{n_1-1}\sum_{i:y_i=1}(x_i - \mu_1)^2}
 $$
+
+where $\mu_1$ is the mean for Class 1
+
 $$
 \hat{\pi_1} = \frac{n_1}{n}
 $$
@@ -275,7 +278,7 @@ P(Y=1|X=x_0) = \frac{\frac{1}{\sqrt{2\pi}\hat{\sigma}}e^{-\frac{(x_0-\hat{\mu})^
 {\frac{1}{\sqrt{2\pi}\hat{\sigma}}e^{-\frac{(x_0-\hat{\mu})^2}{2\hat{\sigma}^2}}\hat{\pi_1} + \frac{1}{4}(1-\hat{\pi_1})}
 $$
 
-where $\hat{\pi_1}, \hat{sigma}$ and $\hat{\mu}$ are estimated quantities from the training data as described in part (c).
+where $\hat{\pi_1}, \hat{\sigma}$ and $\hat{\mu}$ are estimated quantities from the training data as described in part (c).
 
 ## 6. This problem has to do with logistic regression.
 
@@ -324,57 +327,49 @@ y <- cbind(c(rep(1,50),rep(2,50),rep(3,50)))
 data <- data.frame(X,Class=as.factor(y))
 ```
 
-$\mu_1 = \binom{0}{-1}$, $\mu_2 = \binom{3}{1}$, $\mu_3 = \binom{-3}{1}$
+$\mu_1 = \begin{pmatrix}0 \\-1\end{pmatrix}$, $\mu_2 = \begin{pmatrix}3 \\1\end{pmatrix}$, $\mu_3 = \begin{pmatrix}-3\\1\end{pmatrix}$
 
-$\sigma = \matrix{1.8 & 0.8 \\ 0.8 & 1.8}$
+$\Sigma = \begin{pmatrix}1.8 & 0.8 \\ 0.8 & 1.8\end{pmatrix}$
 
 ### (b) Plot the data, with the observations in each class displayed in a different color. Compute and display the Bayes decision boundary (or Bayes decision boundaries) on this plot. This plot should look something like the right-hand panel of Figure 4.6 in the textbook (although no need to worry about shading the background, and also you don’t need to display the LDA decision boundary for this sub-problem — you will do that in the next sub-problem). Be sure to label which region(s) of the plot correspond to each class.
 
-Since all the groups have the same covariance matrix, the Bayes' decision boundary between two classes should be a straight line that is equidistant from both the means. Below are the equations for the decision boundaries between:
+Since all the groups have the same covariance matrix, the Bayes decision boundary between two classes should be a straight line that is equidistant from both the means. Below are the equations for the decision boundaries between:
 
 - Class 1 and Class 3: $x_2 = 1.5(x_1 + 1.5)$
 - Class 1 and Class 2: $x_2 = -1.5(x_1 - 1.5)$
-- Class 2 and Class 3: $x_2 = 0$
-
-```{r}
-#Writing a function to get the decision boundary
-get.bayes.boundary <- function(from, to, by=0.5, m, p){
- x1 <- seq(from, to, by)
- x2 <- m*(x1-p)
- 
- return(data.frame(cbind(x1,x2)))
-}
-
-l.13 <- get.bayes.boundary(-3.5, 0, m=1.5, p=-1.5)
-l.12 <- get.bayes.boundary(0, 3.5, m = -1.5, p=1.5)
-l.23 <- data.frame(x1 = c(0,0), x2 =c (2.25,4))
-```
-
+- Class 2 and Class 3: $x_1 = 0$
 
 ```{r}
 ggplot(data, aes(x=X1, y=X2, color=Class))+
   geom_point()+
-  geom_line(data = l.13, aes(x=x1, y=x2), inherit.aes = FALSE, linetype="dashed")+
-  geom_line(data = l.12, aes(x=x1, y=x2), inherit.aes = FALSE, linetype="dashed")+
-  geom_line(data = l.23, aes(x=x1, y=x2), inherit.aes = FALSE, linetype="dashed")
+  geom_segment(x=0,y=2.25,xend=0,yend=5, linetype="dashed", color="black")+
+  geom_segment(x=-6,y=-6.75,xend=0,yend=2.25, linetype="dashed", color="black")+
+  geom_segment(x=6,y=-6.75,xend=0,yend=2.25, linetype="dashed", color="black")+
+  ggtitle("Plot of training data with Bayes decision boundaries")+
+  annotate(geom="text", x=-5, y=-2.5, label="Class 3")+
+  annotate(geom="text", x=5, y=-2.5, label="Class 2")+
+  annotate(geom="text", x=0, y=-4, label="Class 1")
 ```
 
 ### (c) Fit a linear discriminant analysis model to the data, and make a plot that displays the observations as well as the decision boundary (or boundaries) corresponding to this fitted model. How does the LDA decision boundary (which can be viewed as an estimate of the Bayes decision boundary) compare to the Bayes decision boundary that you computed and plotted in (b)?
 ```{r}
 (lda.fit <- lda(Class ~ ., data = data))
 partimat(Class ~ X2+X1, data = data, method="lda")
+text(x=-4, y=-3, labels = "Class 3")
+text(x=4, y=-3, labels = "Class 2")
+text(x=0, y=-4, labels = "Class 1")
 ```
 
-The LDA boundary comes close to the Bayes decision boundary. The segments are not identical since we can see that the LDA boundaries separating Groups 1 and 3, Groups 1 and 2 are not symmetrical about the y-axis. The LDA boundary separating Groups 2 and 3 is not parallel to the y-axis.
+The LDA boundary comes close to the Bayes decision boundary. The segments are not identical since we can see that the LDA boundaries separating Class 1 and 3, Class 1 and 2 are not symmetrical about the y-axis. The LDA boundary separating Class 2 and 3 is not parallel to the y-axis.
 
-### (d) Report the $K x K$ confusion matrix for the LDA model on the training data. The rows of this confusion matrix represent the predicted class labels, and the columns represent the true class labels. (See Table 4.4 in the textbook for an example of a confusion matrix.) Also, report the training error (i.e. the proportion of training observations that are misclassified).
+### (d) Report the $K \times K$ confusion matrix for the LDA model on the training data. The rows of this confusion matrix represent the predicted class labels, and the columns represent the true class labels. (See Table 4.4 in the textbook for an example of a confusion matrix.) Also, report the training error (i.e. the proportion of training observations that are misclassified).
 ```{r}
 preds <- predict(lda.fit, data[,-3])
 table(preds$class, data$Class)
 ```
 Training error = `r sum(preds$class != data$Class)/nrow(data)`
 
-### (e) Generate $n = 50$ test observations in each of the $K$ classes, using the bivariate normal distributions from (a). Report the $K x K$ confusion matrix, as well as the test error, that results from applying the model fit to the training data in (c) to your test data.
+### (e) Generate $n = 50$ test observations in each of the $K$ classes, using the bivariate normal distributions from (a). Report the $K \times K$ confusion matrix, as well as the test error, that results from applying the model fit to the training data in (c) to your test data.
 
 ```{r}
 X <- lapply(list(mu.1, mu.2, mu.3), function(x) as.matrix(mvrnorm(50, x, sigma)))
@@ -405,9 +400,10 @@ text(x=-4, y=-3, labels = "Class 3")
 text(x=4, y=-3, labels = "Class 2")
 text(x=0, y=-4, labels = "Class 1")
 ```
+
 We see that the boundary for Class 1 vs 3 is somewhat linear, and curves slightly at the top of the plot. The boundary for Class 1 vs 2 is curved compared to the Bayes decision boundary.
 
-### (b) Report the $K x K$ confusion matrix for the QDA model on the training data, as well as the training error.
+### (b) Report the $K \times K$ confusion matrix for the QDA model on the training data, as well as the training error.
 
 ```{r}
 qda.preds <- predict(qda.fit, data[,-3])
@@ -436,6 +432,8 @@ Both LDA and QDA have the same training error rate for the data that we have pic
 LDA has a smaller test error than QDA. This might be explained because of the fact that non-linearity in the boundary estimate overfits the training data. Since we know that all the classes have the same covariance matrix, we know that a linear boundary is a better estimate of the Bayes decision boundary, as we have discovered in the previous sections.
 
 ## 9. _EXTRA CREDIT._ We have seen in class that the least squares regression estimator involves finding the coefficients $\beta_0,\beta_1,...,\beta_p$ that minimize the quantity $\sum_{i = 1}^{n}(y_i - (\beta_0 + \beta_1x_{i1} + ... + \beta_px_{ip}))^2$. By contrast, the _ridge regression estimator_ (which we will discuss in Chapter 6) involves finding the coefficients that minimize $\sum_{i = 1}^{n}(y_i - (\beta_0 + \beta_1x_{i1} + ... + \beta_px_{ip}))^2 + \lambda(\beta^2_1 + ... + \beta^2_p)$ for some positive constant $\lambda$. For simplicity, assume that $\beta_0 = 0$. Derive an expression for the ridge regression estimator, i.e. for the coefficient estimates $\hat{\beta}_1,...,\hat{\beta}_p$.
+
+To obtain the least squares estimate for $\beta$ we take partial derivative of the given equation and equate it to 0.
 
 \begin{equation*}
 \begin{split}
