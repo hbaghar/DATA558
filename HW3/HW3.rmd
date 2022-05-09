@@ -1,11 +1,11 @@
 ---
-title: 'DATA 558: HW Assignment 2'
+title: 'DATA 558: HW Assignment 3'
 author: "Hriday Baghar"
 date: "May 11, 2022"
 output:
-  html_notebook: default
   pdf_document: 
     latex_engine: xelatex
+  html_notebook: default
 mainfont: Helvetica
 monofont: Monaco
 ---
@@ -20,6 +20,7 @@ library(ISLR2)
 library(glmnet)
 library(ggplot2)
 library(boot)
+library(dplyr)
 ```
 
 # 1. In this problem, we’ll see a (very!!) simple simulated example where a least squares linear model is “too flexible”.
@@ -27,7 +28,7 @@ library(boot)
 ## (a) First, generate some data with $n$ = 100 and $p$ = 10,000 features, and a quantitative response, using the following `R` commands: $${\tt y <- rnorm(100)}$$ $${\tt x<-  matrix(rnorm(10000*100), ncol=10000)}$$ Write out an expression for the model corresponding to this data generation procedure. For instance, it might look something like $Y = 2X_1 + 3X_2 + \varepsilon, \varepsilon \sim N(0, 1)$.
 
 ```{r}
-set.seed(42) # The answer to life
+set.seed(42) # the answer to the ultimate question of life, the universe, and everything
 
 y <- rnorm(100)
 x <- matrix(rnorm(10000*100), ncol = 10000)
@@ -111,33 +112,82 @@ preds <- predict(model.1, newdata = val)
 mean((val[,"y"] - preds)^2)
 ```
 
-Estimated test error is 56.66.
+Estimated test error is `r mean((val[,"y"] - preds)^2)`.
 
 ## (e) Comment on your answers to (c) and (d). Which of the two procedures has a smaller estimated test error? higher bias? higher variance? In answering this question, be sure to think carefully about how the data were generated.
 
-The procedure of estimating test error in (c) has a smaller test error since we use the true form of $f$, moreover our estimated $\hat{f}$ is also based on properties of the standard normal distribution (mean value of $\hat{f}$ is 0). We also see that the test MSE is equal to the irreducible error and it is the lowest possible value of MSE we can achieve. Procedure in (d) will have a higher bias and variance, because we try to estimate $f$ using $\hat{f}$ from a linear model. 
+The procedure of estimating test error in (c) has a smaller test error since we use the true form of $f$, moreover our estimated $\hat{f}$ is also based on properties of the standard normal distribution (mean value of $\hat{f}$ is 0). 
+
+We also see that the theoretical test MSE is equal to the irreducible error and it is the lowest possible value of MSE we can achieve. Procedure in (d) will have a higher bias and variance, because we try to estimate $f$ using $\hat{f}$ from a linear model. 
 
 # 2. In lecture during Week 5, we discussed “Option 1” and “Option 2”: two possible ways to perform the validation set approach for a modeling strategy where you identify the $q$ features most correlated with the response, and then fit a least squares linear model to predict the response using just those $q$ features. If you missed that lecture, then please familiarize yourself with the lecture notes (posted on Canvas) before you continue. Here, we are going to continue to work with the simulated data from the previous problem, in order to illustrate the problem with Option 1.
 
 ## (a) Calculate the correlation between each feature and the response. Make a histogram of these correlations. What are the values of the 10 largest absolute correlations?
 
 ```{r}
-hist(cor(y,x))
-sort(abs(cor(y,x)),decreasing = TRUE)[1:10]
+cor.data <- data.frame(Correlation = t(cor(y,x)))
+ggplot(data = cor.data, aes(x=Correlation)) +
+  geom_histogram(color="white") +
+  ggtitle(label = "Histogram of Correlation Coefficient of Features X with Response Y")
+        
 ```
 
+Values of the largest 10 absolute correlations:
+```{r}
+#Sorting columns by highest absolute correlation
+sorted.data <- sort(abs(cor.data$Correlation), 
+                    decreasing = TRUE, index.return = TRUE)
+
+sorted.data$x[1:10]
+```
 
 ## (b) Now try out “Option 1” with $q = 10$. What is the estimated test error?
 
-TODO
+```{r}
+# Subsetting x by indexes of columns with highest correlation
+x.2b <- x[,sorted.data$ix[1:10]]
+
+# Fitting model and reporting MSE
+data.2b <- data.frame(X = x.2b, y)
+
+model.2b <- lm(y ~ ., data = data.2b, subset = rows)
+
+mean((y - predict(model.2b, data.2b))[-rows]^2)
+```
+
 
 ## (c) Now try out “Option 2” with $q = 10$. What is the estimated test error?
 
-TODO
+```{r}
+# Calculating highest correlation by absolute value on training set
+sorted.data <- sort(abs(cor(x[rows,], y[rows])), 
+                    decreasing = TRUE, index.return = TRUE)
+
+# Selecting top 10 features by absolute correlation
+train <- train[, c(sorted.data$ix[1:10], 10001)]
+val <- val[, c(sorted.data$ix[1:10], 10001)]
+
+model.2c <- lm(y ~ ., data = train)
+preds <- predict(model.2c, newdata = val)
+
+mean((val[,"y"] - preds)^2)
+```
+
 
 ## (d) Comment on your results in (b) and (c). How does this relate to the discussion of Option 1 versus Option 2 from lecture? Explain how you can see that Option 1 gave you a useless (i.e. misleading, inaccurate, wrong) estimate of the test error.
 
-TODO
+We see that (b) gave us a much smaller test error than (c). 
+
+In the lecture we discussed why Option 1 is an incorrect method of feature selection because we first look at the entire data and then split it into training and validation sets. The problem with this method is that we are "peeking" into the validation set and have prior information about what that data looks like. This leads to grossly underestimating the test MSE.
+
+To get a reliable estimate of the test MSE, we must separate the data into training and validation sets before we perform any data exploration or feature selection.
+
+Option 1 gave us an inaccurate estimate of the test error because we know that the MSE consists of the irreducible error, squared bias and variance. We found in 1. (b) that the irreducible error is equal to 1. That means, any model that we create will have MSE > 1 because it will include irreducible error along with some bias and variance. In Option 1 we find that the MSE < 1, which is not possible. 
+
+```{r,  include=FALSE}
+#Cleanup
+rm(list = ls())
+```
 
 # 3. In this problem, you will analyze a (real, not simulated) dataset of your choice with a quantitative response $Y$ , and $p \ge 50$ quantitative predictors.
 
@@ -165,15 +215,14 @@ TODO
 
 TODO
 
-In this problem, you may use the function in the `glmnet` package that performs cross-validation. 
-
-# 4.Consider using the `Auto` data set to predict `mpg` using polynomial functions of `horsepower` in a least squares linear regression.
-
-```{r, include=FALSE}
+```{r,  include=FALSE}
 #Cleanup
 rm(list = ls())
 ```
 
+In this problem, you may use the function in the `glmnet` package that performs cross-validation. 
+
+# 4.Consider using the `Auto` data set to predict `mpg` using polynomial functions of `horsepower` in a least squares linear regression.
 
 ## (a) Perform the validation set approach, and produce a plot like the one in the right-hand panel of Figure 5.2 of the textbook. Your answer won’t look _exactly_ the same as the results in Figure 5.2, since you’ll be starting with a different random seed. Discuss your findings. What degree polynomial is best, and why?
 
