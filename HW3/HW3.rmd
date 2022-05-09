@@ -1,0 +1,349 @@
+---
+title: 'DATA 558: HW Assignment 2'
+author: "Hriday Baghar"
+date: "May 11, 2022"
+output:
+  html_notebook: default
+  pdf_document: 
+    latex_engine: xelatex
+mainfont: Helvetica
+monofont: Monaco
+---
+
+# Instructions:
+You may discuss the homework problems in small groups, but you must write up the final solutions and code yourself. Please turn in your code for the problems that involve coding. However, code without written answers will receive no credit. To receive credit, you must explain your answers and show your work. All plots should be appropriately labeled and legible, with axis labels, legends, etc., as needed.
+
+_On this assignment, some of the problems involve random number generation. Be sure to set a random seed (using the command ${\tt set.seed()}$) before you begin._
+
+```{r, setup, message = FALSE}
+library(ISLR2)
+library(glmnet)
+library(ggplot2)
+library(boot)
+```
+
+# 1. In this problem, we’ll see a (very!!) simple simulated example where a least squares linear model is “too flexible”.
+
+## (a) First, generate some data with $n$ = 100 and $p$ = 10,000 features, and a quantitative response, using the following `R` commands: $${\tt y <- rnorm(100)}$$ $${\tt x<-  matrix(rnorm(10000*100), ncol=10000)}$$ Write out an expression for the model corresponding to this data generation procedure. For instance, it might look something like $Y = 2X_1 + 3X_2 + \varepsilon, \varepsilon \sim N(0, 1)$.
+
+```{r}
+set.seed(42) # The answer to life
+
+y <- rnorm(100)
+x <- matrix(rnorm(10000*100), ncol = 10000)
+```
+
+The model we are building here has no features and is pure noise. Hence the expression looks like:
+$$
+Y = \varepsilon,\ \ \ \ \varepsilon \sim N(0,1)
+$$
+
+## (b) What is the value of the irreducible error?
+
+$Var(\varepsilon) = 1$ is the value of the irreducible error.
+
+## (c) Consider a very simple model-fitting procedure that just predicts 0 for every observation. That is, $\hat{f}(x) = 0$ for all $x$.
+
+### i. What is the bias of this procedure?  
+  
+For a single observation $X_0$:
+
+\begin{equation}
+\begin{split}
+Bias &= E[f(X_0) - \hat{f}(X_0)]\\
+&= f(X_0)\\
+&= \varepsilon_0
+\end{split}
+\end{equation}
+
+
+To calculate the overall bias we take the mean of bias for all points in the data. Since we know $\varepsilon$ is a standard normal random variable, $E[\varepsilon] = 0$. Therefore, Bias of this procedure is 0.
+
+### ii. What is the variance of this procedure?
+  
+$$
+Var(\hat{f(X_0)}) = E[\hat{f}(X_0)^2] - E[\hat{f}(X_0)]^2 = 0
+$$
+
+### iii. What is the expected prediction error of this procedure?
+  
+\begin{equation}
+\begin{split}
+MSE &= Var(\varepsilon) + Bias^2(\hat{f}(X_0)) + Var(\hat{f}(X_0)) \\
+&= Var(\varepsilon) + 0 + 0 \\
+&= 1
+\end{split}
+\end{equation}
+
+### iv. Use the validation set approach to estimate the test error of this procedure. What answer do you get?
+  
+```{r}
+set.seed(42)
+
+rows <- sample(1:100, size = 70, replace = FALSE)
+
+x.train <- x[rows,]
+x.val <- x[-rows,]
+
+y.train <- y[rows]
+y.val <- y[-rows]
+
+mean(y.val^2)
+```
+
+We get 1.288 as the MSE.
+
+### v. Comment on your answers to (iii) and (iv). Do your answers agree with each other? Explain.
+  
+We see that the MSE in (iv) is approximately close to the true value of 1 that we calculate in (iii). The difference in values can be attributed to the small sample which we use to estimate the MSE.
+
+## (d) Now use the validation set approach to estimate the test error of a least squares linear model using $X_1,..., X_{10,000}$ to predict $Y$ . What is the estimated test error?
+
+_Hint:_ If you fit a least squares linear model to predict $Y$ using $X_1,..., X_p$ where $p \ge n$, then only the first $n - 1$ coefficients will be assigned values. The rest will show up as `NA` because those coefficients aren’t needed to obtain a perfect (i.e. zero) residual sum of squares on the training data. You can see all of the coefficient values by applying the ${\tt coef()}$ command to the output of the linear model.
+  
+```{r}
+train <- data.frame(x.train, y=y.train)
+val <- data.frame(x.val, y=y.val)
+
+model.1 <- lm(y ~ ., data = train)
+preds <- predict(model.1, newdata = val)
+
+mean((val[,"y"] - preds)^2)
+```
+
+Estimated test error is 56.66.
+
+## (e) Comment on your answers to (c) and (d). Which of the two procedures has a smaller estimated test error? higher bias? higher variance? In answering this question, be sure to think carefully about how the data were generated.
+
+The procedure of estimating test error in (c) has a smaller test error since we use the true form of $f$, moreover our estimated $\hat{f}$ is also based on properties of the standard normal distribution (mean value of $\hat{f}$ is 0). We also see that the test MSE is equal to the irreducible error and it is the lowest possible value of MSE we can achieve. Procedure in (d) will have a higher bias and variance, because we try to estimate $f$ using $\hat{f}$ from a linear model. 
+
+# 2. In lecture during Week 5, we discussed “Option 1” and “Option 2”: two possible ways to perform the validation set approach for a modeling strategy where you identify the $q$ features most correlated with the response, and then fit a least squares linear model to predict the response using just those $q$ features. If you missed that lecture, then please familiarize yourself with the lecture notes (posted on Canvas) before you continue. Here, we are going to continue to work with the simulated data from the previous problem, in order to illustrate the problem with Option 1.
+
+## (a) Calculate the correlation between each feature and the response. Make a histogram of these correlations. What are the values of the 10 largest absolute correlations?
+
+```{r}
+hist(cor(y,x))
+sort(abs(cor(y,x)),decreasing = TRUE)[1:10]
+```
+
+
+## (b) Now try out “Option 1” with $q = 10$. What is the estimated test error?
+
+TODO
+
+## (c) Now try out “Option 2” with $q = 10$. What is the estimated test error?
+
+TODO
+
+## (d) Comment on your results in (b) and (c). How does this relate to the discussion of Option 1 versus Option 2 from lecture? Explain how you can see that Option 1 gave you a useless (i.e. misleading, inaccurate, wrong) estimate of the test error.
+
+TODO
+
+# 3. In this problem, you will analyze a (real, not simulated) dataset of your choice with a quantitative response $Y$ , and $p \ge 50$ quantitative predictors.
+
+## (a) Describe the data. Where did you get it from? What is the meaning of the response, and what are the meanings of the predictors?
+
+TODO
+
+## (b) Fit a least squares linear model to the data, and provide an estimate of the test error. (Explain how you got this estimate.)
+
+TODO
+
+## (c) Fit a ridge regression model to the data, with a range of values of the tuning parameter $\lambda$. Make a plot like the left-hand panel of Figure 6.4 in the textbook.
+
+TODO
+
+## (d) What value of $\lambda$ in the ridge regression model provides the smallest estimated test error? Report this estimate of test error. (Also, explain how you estimated test error.)
+
+TODO
+
+## (e) Repeat (c), but for a lasso model.
+
+TODO
+
+## (f) Repeat (d), but for a lasso model. Which features are included in this lasso model?
+
+TODO
+
+In this problem, you may use the function in the `glmnet` package that performs cross-validation. 
+
+# 4.Consider using the `Auto` data set to predict `mpg` using polynomial functions of `horsepower` in a least squares linear regression.
+
+```{r, include=FALSE}
+#Cleanup
+rm(list = ls())
+```
+
+
+## (a) Perform the validation set approach, and produce a plot like the one in the right-hand panel of Figure 5.2 of the textbook. Your answer won’t look _exactly_ the same as the results in Figure 5.2, since you’ll be starting with a different random seed. Discuss your findings. What degree polynomial is best, and why?
+
+```{r, message=FALSE}
+set.seed(42)
+attach(Auto)
+
+# Defining function to repeat cross-validation
+
+perform.cv <- function(all = FALSE){
+  # all = TRUE allows us to train model on entire training set
+  if(all){
+   train <- sample(nrow(Auto), nrow(Auto), replace = FALSE)
+  }
+  else{
+    train <- sample(nrow(Auto), 0.5*(nrow(Auto))) 
+  }
+  D <- 1:10
+  mse <- rep(0,length(D))
+  for(d in D){
+    model <- lm(mpg ~ poly(horsepower, d), subset = train)
+    if(all){
+      mse[d] <- mean((mpg - predict(model, Auto))^2) 
+    }
+    else{
+      mse[d] <- mean((mpg - predict(model, Auto))[-train]^2) 
+    }
+  }
+  return(mse)
+}
+```
+
+Above, we define a function to perform cross validation over the auto dataset for each degree of polynomial. We will now call this repeatedly.
+
+```{r}
+mse <- matrix(rep(0, 10*10), nrow = 10)
+
+plots <- ggplot()
+for(i in 1:10){
+  mse[i,] <-  perform.cv()
+  df <- data.frame(poly = 1:10, MSE = mse[i,])
+  plots <- plots + geom_line(data = df, aes(x=poly, y=MSE), color=i)
+}
+
+plots + 
+  scale_x_continuous(breaks = c(1:10)) +
+  labs(x = "Degree of polynomial", 
+       title = "Validation Set MSE vs Degree of Polynomial",
+       subtitle = "Over Multiple Iterations ")
+  
+```
+
+We find that adding higher order polynomials of horsepower is generally better. There is a lot of variance in MSE between each run due the the random split used to generate training data but the trends of each iteration are mostly in agreement - degree 2 is considerably better than degree 1. We see that for very high order polynomials (> 7) that MSE starts to increase in some runs.
+
+A degree 2 polynomial appears to be the best choice because it produces a huge reduction in MSE compared to a degree 1 polynomial and has MSE similar to other higher order polynomials while being a much simpler model (thereby reducing variance).
+
+## (b) Perform leave-one-out cross-validation, and produce a plot like the one in the left-hand panel of Figure 5.4 of the textbook. Discuss your findings. What degree polynomial is best, and why?
+
+```{r}
+loocv.mse <- rep(0, 10)
+
+for(i in 1:10){
+  glm.fit <- glm(mpg ~ poly(horsepower, i), data = Auto)
+  loocv.mse[i] <- cv.glm(Auto, glm.fit)$delta[1]
+}
+
+ggplot(data = data.frame(d = 1:10, loocv.mse), aes(x=d, y=loocv.mse)) +
+  geom_line(color=20) + geom_point()+
+  scale_x_continuous(breaks = c(1:10)) +
+  labs(x = "Degree of polynomial", y="MSE",
+       title = "MSE vs Degree of Polynomial",
+       subtitle = "Leave-One-Out Cross Validation")
+```
+
+Similar to (a) we see that adding higher order polynomials greatly reduces the MSE. Polynomial of degree 7 has the lowest MSE but it still seems like degree 2 might be the best option due to being a much simpler model and still having MSE comparable to degree 7.
+
+## (c) Perform 10-fold cross-validation, and produce a plot like the one in the right-hand panel of Figure 5.4 of the textbook. Discuss your findings. What degree polynomial is best, and why?
+
+Defining a function to perform k-fold cross validation.
+
+```{r}
+set.seed(42)
+
+perform.kfold.cv <- function(k=10) {
+ kfold.cv <- rep(0,10)
+ for(i in 1:10){
+   glm.fit <- glm(mpg ~ poly(horsepower, i), data = Auto)
+   kfold.cv[i] <- cv.glm(Auto, glm.fit, K = k)$delta[1]
+ }
+ return(kfold.cv)
+}
+```
+
+Now, we call this function repeatedly.
+
+```{r}
+mse <- matrix(rep(0, 10*10), nrow = 10)
+
+plots <- ggplot()
+for(i in 1:10){
+  mse[i,] <-  perform.kfold.cv()
+  df <- data.frame(poly = 1:10, MSE = mse[i,])
+  plots <- plots + geom_line(data = df, aes(x=poly, y=MSE), color=i)
+}
+
+plots + 
+  scale_x_continuous(breaks = c(1:10)) +
+  labs(x = "Degree of polynomial", 
+       title = "K-fold Cross Validation MSE vs Degree of Polynomial",
+       subtitle = "Over Multiple Iterations ")
+  
+```
+
+We find that the variance in MSE over runs is much lower in k-fold cross validation compared to the validation set approach over multiple runs. In most runs it appears that a degree 7 polynomial has the lowest MSE, however there is more variability in degree 7's MSE compared to degree 2 over multiple runs.
+
+Given the consistency in results and model simplicity, a degree 2 polynomial is the best option to capture the relation between horsepower and mpg.
+
+## (d) Fit a least squares linear model to predict `mpg` using polynomials of degrees from 1 to 10, using all available observations. Make a plot showing “Degree of Polynomial” on the _x_-axis, and “Training Set Mean Squared Error” on the _y_-axis. Discuss your findings.
+
+```{r}
+train.mse <- perform.cv(all = TRUE)
+
+ggplot(data = data.frame(d=1:10, train.mse), aes(x=d, y=train.mse))+
+  geom_line(color=10)+geom_point()+
+  scale_x_continuous(breaks = c(1:10))+
+  labs(x = "Degree of polynomial", y="Training MSE",
+       title = "Training MSE vs Degree of Polynomial")
+  
+```
+
+We find that the training MSE consistently reduces as we increase the degree of polynomial
+
+## (e) Fit a least squares linear model to predict `mpg` using a degree-10 polynomial, using all available observations. Using the `summary` command in `R`, examine the output. Comment on the output, and discuss how this relates to your findings in (a)–(d).
+
+```{r}
+model.4e <- lm(mpg ~ poly(horsepower, 10), data = Auto)
+
+summary(model.4e)
+```
+
+Based on the above summary of the model the coefficient of the degree 10 polynomial is not statistically significant when added to the model, i.e. it offers no improvement. This relates to the findings in (a)-(c) where we found that the MSE increases for degree 10 in all the cross validation approaches. The reason the training MSE decreases in (d) is because adding higher order features will always reduce the residual sum of squares but causes the model to overfit - the training MSE will be low, however MSE on a test set with unseen observations would be high.
+
+# 5. _Extra Credit!_ Let’s consider doing least squares and ridge regression under a very simple setting, in which $p = 1$, and $\sum_{i = 1}^{n} y_i = \sum_{i = 1}^{n} x_i = 0$. We consider regression without an intercept. (It’s usually a bad idea to do regression without an intercept, but if our feature and response each have mean zero, then it is okay to do this!)
+
+_Hint: For this problem, you might want to brush up on some basic properties of means and variances! For instance, if $Cov(Z, W)$ = 0, then $Var(Z + W) = Var(Z) + Var(W)$. And if $a$ is a constant, then $Var(aW) = a^2Var(W)$, and $Var(a + W) = Var(W)$._
+
+## (a) The least squares solution is the value of $\beta \in \mathbb{R}$ that minimizes $\sum_{i = 1}^{n} (y_i - \beta x_i)^2$. Write out an analytical (closed-form) expression for this least squares solution. Your answer should be a function of $x_1,..., x_n$ and $y_1,..., y_n$. _Hint: Calculus!!_
+
+TODO
+
+## (b) For a given value of $\lambda$, the ridge regression solution minimizes $\sum_{i = 1}^{n} (y_i - \beta x_i)^2 + \lambda \beta ^2$. Write out an analytical (closed-form) expression for the ridge regression solution, in terms of $x_1,..., x_n$ and $y_1,..., y_n$ and $\lambda$.
+
+TODO
+
+## (c) Suppose that the true data-generating model is $Y = 3X + \varepsilon$, where $\varepsilon$ has mean zero, and $X$ is fixed (non-random). What is the expectation of the least squares estimator from (a)? Is it biased or unbiased?
+
+TODO
+
+## (d) Suppose again that the true data-generating model is $Y = 3X + \varepsilon$, where $\varepsilon$ has mean zero, and $X$ is fixed (non-random). What is the expectation of the ridge regression estimator from (b)? Is it biased or unbiased? Explain how the bias changes as a function of $\lambda$.
+
+TODO
+
+## (e) Suppose that the true data-generating model is $Y = 3X + \varepsilon$, where $\varepsilon$ has mean zero and variance $\sigma^2$, and $X$ is fixed (non-random), and also $Cov(\varepsilon_i, \varepsilon_{i^\prime})= 0$ for all $i \neq i^\prime$. What is the variance of the least squares estimator from (a)?
+
+TODO
+
+## (f) Suppose that the true data-generating model is $Y = 3X + \varepsilon$, where $\varepsilon$ has mean zero and variance $\sigma^2$, and $X$ is fixed (non-random), and also $Cov(\varepsilon_i, \varepsilon_{i^\prime})= 0$ for all $i \neq i^\prime$. What is the variance of the ridge estimator from (b)? How does the variance change as a function of $\lambda$?
+
+TODO
+
+## (g) In light of your answers to parts (d) and (f), argue that $\lambda$ in ridge regression allows us to control model complexity by trading off bias for variance.
+
+TODO
