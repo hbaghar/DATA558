@@ -21,6 +21,7 @@ library(glmnet)
 library(ggplot2)
 library(boot)
 library(dplyr)
+library(glmnet)
 ```
 
 # 1. In this problem, we’ll see a (very!!) simple simulated example where a least squares linear model is “too flexible”.
@@ -91,8 +92,6 @@ y.val <- y[-rows]
 
 mean(y.val^2)
 ```
-
-We get 1.288 as the MSE.
 
 ### v. Comment on your answers to (iii) and (iv). Do your answers agree with each other? Explain.
   
@@ -191,36 +190,113 @@ rm(list = ls())
 
 # 3. In this problem, you will analyze a (real, not simulated) dataset of your choice with a quantitative response $Y$ , and $p \ge 50$ quantitative predictors.
 
+In this problem, you may use the function in the `glmnet` package that performs cross-validation. 
+
 ## (a) Describe the data. Where did you get it from? What is the meaning of the response, and what are the meanings of the predictors?
 
-TODO
+The data contains information about 21263 superconductors and 81 features that were captured for them. This data was acquired from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets/Superconductivty+Data). It contains two files - we use only train.csv for this problem.
+
+The goal is to predict the critical temperature of a superconductor given these features. The feature set consists of various statistics such as mean, weighted mean and geometric mean applied to physical and chemical characteristics of the elements. Below we list the various features present in the dataset:
+
+```{r}
+data <- read.csv("superconduct_train.csv")
+
+knitr::kable(data.frame(Feature = colnames(data), 
+           Type = c(rep("Predictor, Numeric", 81), "Response, Numeric")))
+```
+
 
 ## (b) Fit a least squares linear model to the data, and provide an estimate of the test error. (Explain how you got this estimate.)
 
-TODO
+```{r}
+set.seed(42)
+
+train <- sample(nrow(data), 0.5*nrow(data), replace = FALSE)
+model.3b <- lm(critical_temp ~ ., data = data, subset = train)
+
+mean((data[,"critical_temp"] - predict(model.3b, data))[-train]^2)
+```
+
+The test error is obtained by using a validation set. We fit the model on only the training data and then test this model's fit on the validation set.
 
 ## (c) Fit a ridge regression model to the data, with a range of values of the tuning parameter $\lambda$. Make a plot like the left-hand panel of Figure 6.4 in the textbook.
 
-TODO
+```{r}
+
+x <- model.matrix(critical_temp ~ ., data = data)[,-1]
+y <- data[,"critical_temp"]
+  
+grid <- 10^seq(10, -2, length = 50)
+  
+
+plot.regularization <- function(alpha=0){
+  
+  model <- glmnet(x[train,], y[train], lambda = grid, alpha = alpha, thresh = 1e-12)
+  
+  betas <- model$beta
+  
+  plots <- ggplot()
+  for(i in 1:nrow(betas)){
+    df <- data.frame(coef = betas[i,], lambda = grid)
+    plots <- plots + geom_line(data = df, aes(x=log(lambda), y=coef), color = i)
+  } 
+  plots <- plots + 
+    labs(title = "Plot of coefficient estimates against log(lambda)", 
+         y = "Coefficient Estimate")
+  return(plots)
+}
+
+(ridge.plot <- plot.regularization() + labs(subtitle = "Ridge regression"))
+```
 
 ## (d) What value of $\lambda$ in the ridge regression model provides the smallest estimated test error? Report this estimate of test error. (Also, explain how you estimated test error.)
 
-TODO
+```{r}
+set.seed(42)
+
+cv.ridge <- cv.glmnet(x[train,], y[train], alpha=0, lambda = grid)
+best.lambda.ridge <- cv.ridge$lambda.min
+```
+
+We find using cross validation on the training data that the best value of $\lambda$ = `r best.lambda.ridge`
+
+```{r}
+best.ridge <- predict(cv.ridge, s = best.lambda.ridge, newx = x[-train,])
+mean((best.ridge - y[-train])^2)
+```
+
+The estimated test error is stated above. We get this test error by first, identifying the best value of $\lambda$ by running cross validation on the training data and then calculating MSE on the held out data that was not used in the cross validation process.
+
+The final ridge regression model that we deploy into the real world should be re-trained on all the data
 
 ## (e) Repeat (c), but for a lasso model.
 
-TODO
+```{r}
+(lasso.plot <- plot.regularization(alpha=1) + labs(subtitle = "Lasso Regression"))
+```
 
 ## (f) Repeat (d), but for a lasso model. Which features are included in this lasso model?
 
-TODO
+```{r}
+set.seed(42)
+
+cv.lasso <- cv.glmnet(x[train,], y[train], alpha=1, lambda = grid)
+best.lambda.lasso <- cv.lasso$lambda.min
+```
+
+We find using cross validation on the training data that the best value of $\lambda$ = `r best.lambda.lasso`
+
+```{r}
+best.lasso <- predict(cv.lasso, s = best.lambda.lasso, newx = x[-train,])
+mean((best.lasso - y[-train])^2)
+```
+
+The estimated test error is stated above. We get this test error by first, identifying the best value of $\lambda$ by running cross validation on the training data and then calculating MSE on the held out data that was not used in the cross validation process.
 
 ```{r,  include=FALSE}
 #Cleanup
 rm(list = ls())
 ```
-
-In this problem, you may use the function in the `glmnet` package that performs cross-validation. 
 
 # 4.Consider using the `Auto` data set to predict `mpg` using polynomial functions of `horsepower` in a least squares linear regression.
 
@@ -364,6 +440,11 @@ summary(model.4e)
 ```
 
 Based on the above summary of the model the coefficient of the degree 10 polynomial is not statistically significant when added to the model, i.e. it offers no improvement. This relates to the findings in (a)-(c) where we found that the MSE increases for degree 10 in all the cross validation approaches. The reason the training MSE decreases in (d) is because adding higher order features will always reduce the residual sum of squares but causes the model to overfit - the training MSE will be low, however MSE on a test set with unseen observations would be high.
+
+```{r,  include=FALSE}
+#Cleanup
+rm(list = ls())
+```
 
 # 5. _Extra Credit!_ Let’s consider doing least squares and ridge regression under a very simple setting, in which $p = 1$, and $\sum_{i = 1}^{n} y_i = \sum_{i = 1}^{n} x_i = 0$. We consider regression without an intercept. (It’s usually a bad idea to do regression without an intercept, but if our feature and response each have mean zero, then it is okay to do this!)
 
