@@ -67,6 +67,8 @@ $$
 Var(\hat{f(X_0)}) = E[\hat{f}(X_0)^2] - E[\hat{f}(X_0)]^2 = 0
 $$
 
+Because $\hat{f}$ always predicts 0.
+
 ### iii. What is the expected prediction error of this procedure?
   
 \begin{equation}
@@ -293,6 +295,23 @@ mean((best.lasso - y[-train])^2)
 
 The estimated test error is stated above. We get this test error by first, identifying the best value of $\lambda$ by running cross validation on the training data and then calculating MSE on the held out data that was not used in the cross validation process.
 
+The features included in the model are:
+
+```{r}
+refit.lasso.model <- glmnet(x, y, lambda = grid, alpha = 1)
+lasso.coef <- predict(refit.lasso.model, s = best.lambda.lasso, 
+                      type = "coefficients")
+lasso.df <- data.frame(Variable = names(lasso.coef[1:82,]), 
+                       Coefficient = as.numeric(lasso.coef))
+
+# Variables included in model
+knitr::kable(lasso.df |> filter(Coefficient != 0))
+
+# Variables excluded from model
+knitr::kable(lasso.df |> filter(Coefficient == 0))
+```
+
+
 ```{r,  include=FALSE}
 #Cleanup
 rm(list = ls())
@@ -452,28 +471,138 @@ _Hint: For this problem, you might want to brush up on some basic properties of 
 
 ## (a) The least squares solution is the value of $\beta \in \mathbb{R}$ that minimizes $\sum_{i = 1}^{n} (y_i - \beta x_i)^2$. Write out an analytical (closed-form) expression for this least squares solution. Your answer should be a function of $x_1,..., x_n$ and $y_1,..., y_n$. _Hint: Calculus!!_
 
-TODO
+The least squares solution will require taking the partial derivative of $\sum_{i = 1}^{n} (y_i - \beta x_i)^2$ with respect to $\beta$.
+
+
+\begin{equation}
+\begin{split}
+\frac{\partial}{\partial\beta}\sum_{i = 1}^{n} (y_i - \beta x_i)^2 &= -2 \sum_{i = 1}^{n}(y_i - \beta x_i)x_i \\
+0 &=  \sum_{i = 1}^{n} x_iy_i - \beta x_i^2 \\
+\hat{\beta} &= \frac{\sum_{i = 1}^{n}x_iy_i}{\sum_{i = 1}^{n}x_i^2}
+\end{split}
+\end{equation}
+
 
 ## (b) For a given value of $\lambda$, the ridge regression solution minimizes $\sum_{i = 1}^{n} (y_i - \beta x_i)^2 + \lambda \beta ^2$. Write out an analytical (closed-form) expression for the ridge regression solution, in terms of $x_1,..., x_n$ and $y_1,..., y_n$ and $\lambda$.
 
-TODO
+For the ridge solution, we perform the same operation as (a) but this time on the equation $\sum_{i = 1}^{n} (y_i - \beta x_i)^2 + \lambda \beta ^2$.
+
+
+\begin{equation}
+\begin{split}
+\frac{\partial}{\partial\beta}\sum_{i = 1}^{n} (y_i - \beta x_i)^2 + \lambda \beta ^2 &= -2 \sum_{i = 1}^{n}(y_i - \beta x_i)x_i + 2\lambda \beta\\
+\sum_{i = 1}^{n}x_iy_i & = \lambda \beta + \sum_{i = 1}^{n}\beta x_i^2\\
+\hat{\beta_{R}} &= \frac{\sum_{i = 1}^{n}x_iy_i}{(\lambda + \sum_{i = 1}^{n}x_i^2)}
+\end{split}
+\end{equation}
+
 
 ## (c) Suppose that the true data-generating model is $Y = 3X + \varepsilon$, where $\varepsilon$ has mean zero, and $X$ is fixed (non-random). What is the expectation of the least squares estimator from (a)? Is it biased or unbiased?
 
-TODO
+
+\begin{equation}
+\begin{split}
+E[\hat{\beta}] &= E\left[\frac{\sum_{i = 1}^{n}x_iy_i}{\sum_{i = 1}^{n}x_i^2}\right]\\
+& = E\left[\frac{\sum_{i = 1}^{n}x_i(3x_i + \varepsilon_i)}{\sum_{i = 1}^{n}x_i^2}\right] \\
+& = E\left[\frac{3\sum_{i = 1}^{n}x_i^2 + x_i\varepsilon_i}{\sum_{i = 1}^{n}x_i^2}\right] \\
+& = 3\frac{\sum_{i = 1}^{n}x_i^2}{\sum_{i = 1}^{n}x_i^2} + \frac{\sum_{i = 1}^{n}x_iE[\varepsilon_i]}{\sum_{i = 1}^{n}x_i^2}\\
+E[\hat{\beta}] & = 3
+\end{split}
+\end{equation}
+
+
+We get the estimated value of $\beta$ to be 3. This is because we know $E[{\varepsilon_i}] = 0$. This turns out to be an unbiased estimator because $E[\hat{\beta}] = \beta$.
 
 ## (d) Suppose again that the true data-generating model is $Y = 3X + \varepsilon$, where $\varepsilon$ has mean zero, and $X$ is fixed (non-random). What is the expectation of the ridge regression estimator from (b)? Is it biased or unbiased? Explain how the bias changes as a function of $\lambda$.
 
-TODO
+
+\begin{equation}
+\begin{split}
+E[\hat{\beta_R}] &= E\left[\frac{\sum_{i = 1}^{n}x_iy_i}{\lambda + \sum_{i = 1}^{n}x_i^2}\right]\\
+& = E\left[\frac{3\sum_{i = 1}^{n}x_i^2 + x_i\varepsilon_i}{\lambda+\sum_{i = 1}^{n}x_i^2}\right]\\
+& = 3\frac{\sum_{i = 1}^{n}x_i^2}{\lambda+\sum_{i = 1}^{n}x_i^2} + \frac{\sum_{i = 1}^{n}x_iE[\varepsilon_i]}{\lambda+\sum_{i = 1}^{n}x_i^2}\\
+E[\hat{\beta_R}]& = 3\frac{\sum_{i = 1}^{n}x_i^2}{\lambda+\sum_{i = 1}^{n}x_i^2} (\because E[\varepsilon_i]=0)
+\end{split}
+\end{equation}
+
+
+We see that the ridge regression coefficient estimate is a biased estimator of $\beta$. As $\lambda \rightarrow \infty, E[\hat{\beta_R}]=0$ adding more bias to the estimate, and when $\lambda=0, E[\hat{\beta_R}] = 3$, i.e. when $\lambda=0$ the ridge estimator is equivalent to the least squares estimator.
 
 ## (e) Suppose that the true data-generating model is $Y = 3X + \varepsilon$, where $\varepsilon$ has mean zero and variance $\sigma^2$, and $X$ is fixed (non-random), and also $Cov(\varepsilon_i, \varepsilon_{i^\prime})= 0$ for all $i \neq i^\prime$. What is the variance of the least squares estimator from (a)?
 
-TODO
+
+\begin{equation}
+\begin{split}
+Var(\hat{\beta}) &= Var\left(\frac{\sum_{i = 1}^{n}x_iy_i}{\sum_{i = 1}^{n}x_i^2}\right)\\
+&= Var\left(\frac{3\sum_{i = 1}^{n}x_i^2 + x_i\varepsilon_i}{\sum_{i = 1}^{n}x_i^2}\right)\\
+&= Var\left(3\frac{\sum_{i = 1}^{n}x_i^2}{\sum_{i = 1}^{n}x_i^2} + \frac{\sum_{i = 1}^{n}x_i\varepsilon_i}{\sum_{i = 1}^{n}x_i^2}\right)\\
+& = Var(3) +Var\left(\frac{\sum_{i = 1}^{n}x_i\varepsilon_i}{\sum_{i = 1}^{n}x_i^2}\right)\\
+& = 0 +\left(\frac{1}{\sum_{i = 1}^{n}x_i^2}\right)^2Var(x_1\varepsilon_1+...+x_n\varepsilon_n)\\
+& = \left(\frac{1}{\sum_{i = 1}^{n}x_i^2}\right)^2(x_1^2Var(\varepsilon_1)+...+x_n^2Var(\varepsilon_n)) \\
+& = \left(\frac{1}{\sum_{i = 1}^{n}x_i^2}\right)^2(x_1^2\sigma^2+...+x_n^2\sigma^2) (\because Cov(\varepsilon_i, \varepsilon_{i'}) =0)\\
+& = \left(\frac{1}{\sum_{i = 1}^{n}x_i^2}\right)^2n\sigma^2\sum_{i = 1}^{n}x_i^2\\
+Var(\hat{\beta})& = \frac{n\sigma^2}{\sum_{i = 1}^{n}x_i^2}
+\end{split}
+\end{equation}
+
 
 ## (f) Suppose that the true data-generating model is $Y = 3X + \varepsilon$, where $\varepsilon$ has mean zero and variance $\sigma^2$, and $X$ is fixed (non-random), and also $Cov(\varepsilon_i, \varepsilon_{i^\prime})= 0$ for all $i \neq i^\prime$. What is the variance of the ridge estimator from (b)? How does the variance change as a function of $\lambda$?
 
-TODO
+
+\begin{equation}
+\begin{split}
+Var(\hat{\beta_R}) &= Var\left(\frac{\sum_{i = 1}^{n}x_iy_i}{\lambda+\sum_{i = 1}^{n}x_i^2}\right)\\
+& = Var\left(\frac{3\sum_{i = 1}^{n}x_i^2 + x_i\varepsilon_i}{\lambda +\sum_{i = 1}^{n}x_i^2}\right)\\
+& = Var\left(3\frac{\sum_{i = 1}^{n}x_i^2}{\lambda+\sum_{i = 1}^{n}x_i^2} + \frac{\sum_{i = 1}^{n}x_i\varepsilon_i}{\lambda+\sum_{i = 1}^{n}x_i^2}\right)\\
+& = Var\left(3\frac{\sum_{i = 1}^{n}x_i^2}{\lambda+\sum_{i = 1}^{n}x_i^2}\right) + Var\left(\frac{\sum_{i = 1}^{n}x_i\varepsilon_i}{\lambda+\sum_{i = 1}^{n}x_i^2}\right)\\
+& = 0 + Var\left(\frac{\sum_{i = 1}^{n}x_i\varepsilon_i}{\lambda+\sum_{i = 1}^{n}x_i^2}\right) (\because Var(a) = 0)\\
+&= \left(\frac{1}{\lambda+\sum_{i = 1}^{n}x_i^2}\right)^2 Var(x_1\varepsilon_1+...+x_n\varepsilon_n)\\
+&= \left(\frac{1}{\lambda+\sum_{i = 1}^{n}x_i^2}\right)^2 (x_1^2Var(\varepsilon_1)+...+x_n^2Var(\varepsilon_n)) \\
+&= \left(\frac{1}{\lambda+\sum_{i = 1}^{n}x_i^2}\right)^2(x_1^2\sigma^2+...+x_n^2\sigma^2) (\because Cov(\varepsilon_i, \varepsilon_{i'}) =0)\\
+Var(\hat{\beta_R})&= \frac{\sum_{i = 1}^{n}x_i^2}{(\lambda+\sum_{i = 1}^{n}x_i^2)^2}n\sigma^2
+\end{split}
+\end{equation}
+
+
+We see that as we increase the value of $\lambda$ the variance reduces because the quantity $(\lambda+\sum_{i = 1}^{n}x_i^2)^2 > \sum_{i = 1}^{n}x_i^2$.
 
 ## (g) In light of your answers to parts (d) and (f), argue that $\lambda$ in ridge regression allows us to control model complexity by trading off bias for variance.
 
-TODO
+We learned from (d) that
+$$
+Bias_R = \beta - E[\hat\beta_R]
+$$
+
+where $E[\hat\beta_R] = 3\frac{\sum_{i = 1}^{n}x_i^2}{\lambda+\sum_{i = 1}^{n}x_i^2}$. For any $\lambda > 0$, we see that the denominator is greater than the numerator making the value of $E[\hat{\beta_R}] < 3$. Therefore we will have a positive value for Bias when we include a non-zero lambda because we are subtracting a value smaller than 3 from 3 when $\lambda > 0$.
+
+We also know that least squares regression gives an unbiased estimator of $\beta$ i.e. $Bias_{LS} = 0$. Therefore we see that ridge regression introduces some bias compared to least squares regression.
+
+Now, we know that the ridge regression variance is
+$$
+Var(\hat{\beta_R}) = \frac{\sum_{i = 1}^{n}x_i^2}{(\lambda+\sum_{i = 1}^{n}x_i^2)^2}n\sigma^2
+$$
+
+And the variance for the least squares estimator is,
+$$
+Var(\hat{\beta}) = \frac{n\sigma^2}{\sum_{i = 1}^{n}x_i^2}
+$$
+
+We need to show when $Var(\hat{\beta_R}) < Var(\hat{\beta})$ to establish that ridge regression trades off higher bias for decrease in variance.
+
+Let $\sum_{i = 1}^{n}x_i^2 = s$.
+
+
+\begin{equation}
+\begin{split}
+Var(\hat{\beta_R}) &< Var(\hat{\beta})\\
+\frac{s}{(\lambda+s)^2}n\sigma^2 &< \frac{n\sigma^2}{s}\\
+\frac{s}{(\lambda+s)^2} &< \frac{1}{s}\\
+\frac{1}{(\lambda+s)^2} &< \frac{1}{s^2}\\
+(\lambda+s)^2 &> s^2\\
+\lambda+s &> s\\
+\implies \lambda &>0
+\end{split}
+\end{equation}
+
+
+We see that the above inequality holds true when $\lambda > 0$, which it turns out is always true when we perform ridge regression. Hence we have shown that, ridge regression has a higher bias, but has lower variance than least squares regression. Controlling the value of $\lambda$ allows us to control the bias and variance. Adding more bias means that we are reducing model flexibility and hence complexity of how the model represents data.
