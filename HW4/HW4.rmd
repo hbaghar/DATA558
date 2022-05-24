@@ -1,0 +1,274 @@
+---
+title: 'Homework #4'
+output: pdf_document
+---
+
+## Instructions:
+You may discuss the homework problems in small groups, but you must write up the final solutions and code yourself. Please turn in your code for the problems that involve coding. However, code without written answers will receive no credit. To receive credit, you must explain your answers and show your work. All plots should be appropriately labeled and legible, with axis labels, legends, etc., as needed.
+
+_On this assignment, some of the problems involve random number generation. Be sure to set a random seed (using the command ${\tt set.seed()}$) before you begin._
+
+```{r, setup, message=FALSE}
+library(ISLR2)
+library(splines)
+library(ggplot2)
+library(tree)
+library(dplyr)
+library(gam)
+library(randomForest)
+```
+
+
+## 1. Suppose that a curve $\hat{g}$ is computed to smoothly fit a set of $n$ points using the following formula: $$\hat{g} = arg \mathop{min}_g\left(\sum_{i=1}^{n}(y_i - g(x_i))^2 + \lambda \int \left[g^{(m)}(x)\right]^2 \; dx\right),$$ where $g^{(m)}$ represents the $m$th derivative of $g$ (and $g^{(0)} = g$). Provide example sketches of $\hat{g}$ in each of the following scenarios.
+
+### (a) $\lambda = \infty, \; m = 0$.
+
+TODO
+
+### (b) $\lambda = \infty, \; m = 1$.
+
+TODO
+
+### (c) $\lambda = \infty, \; m = 2$.
+
+TODO
+
+### (d) $\lambda = \infty, \; m = 3$.
+
+TODO
+
+### (e) $\lambda = 0, \; m = 3$.
+
+TODO
+
+## 2. Suppose we fit a curve with basis functions $b_1(X) = I(0 \le X \le 2) - (X + 1)I(1 \le X \le 2)$, $b_2(X) = (2X - 2)I(3 \le X \le 4) - I(4 < X \le 5)$. We fit the linear regression model $$Y = \beta_0 + \beta_1b_1(X) + \beta_2b_2(X) + \epsilon,$$ and obtain coefficient estimates $\hat{\beta}_0 = 2$, $\hat{\beta}_1 = 3$, $\hat{\beta}_2 = -2$. Sketch the estimated curve between $X = -2$ and $X = 6$. Note the intercepts, slopes, and other relevant information.
+
+TODO
+
+## 3.  Prove that any function of the form $$f(X) = \beta_0 + \beta_1X + \beta_2X^2 + \beta_3X^3 + \beta_4(X - \psi)^3_+$$ is a cubic spline with a knot at $\psi$.
+
+TODO
+
+## 4. For this problem, we will use the ${\tt Wage}$ data set that is part of the ${\tt ISLR}$ package. Split the data into a training set and a test set, and then fit using the following models to predict ${\tt Wage}$ using ${\tt Age}$ on the training set. Make some plots, and comment on your results. 
+
+```{r}
+str(Wage)
+set.seed(42)
+train <- sample(nrow(Wage), size = 0.9*nrow(Wage), replace = FALSE)
+```
+
+Defining function to plot test data and fit
+
+```{r}
+plot.fit <- function(model, subtitle=""){
+  agelims <- range(Wage[train, "age"])
+  age.grid <- seq(from = agelims[1], to = agelims[2])
+  preds <- predict(model, newdata = list(age = age.grid), se = TRUE)
+  
+  preds.df <- data.frame(age = age.grid, lower = preds$fit - 2*preds$se.fit,
+                         upper = preds$fit + 2*preds$se.fit,
+                         preds = preds$fit)
+  
+  ggplot()+
+    geom_point(data = Wage[-train,], aes(x=age, y=wage), shape=1, color = "darkgray") +
+    geom_line(data = preds.df, aes(x=age, y = lower), linetype = 2, color = "blue")+
+    geom_line(data = preds.df, aes(x=age, y = upper), linetype = 2, color = "blue")+
+    geom_line(data = preds.df, aes(x=age, y = preds), color = "blue")+
+    labs(title = "Plot of Test Data and Model Fit", subtitle = subtitle)
+}
+```
+
+
+### (a) polynomial
+
+```{r}
+poly.fit <- lm(wage ~ poly(age,4), data = Wage, subset = train)
+plot.fit(poly.fit, "Polynomial model of degree 4")
+```
+
+### (b) step function
+
+```{r}
+step.fit <- lm(wage ~ cut(age, 4), data = Wage, subset = train)
+plot.fit(step.fit, "Step function with 4 knots")
+```
+
+### (c) piecewise polynomial
+
+```{r}
+piecewise.poly.fit <- lm(wage ~ poly(age,4):cut(age,4), 
+                         data = Wage, subset = train)
+plot.fit(piecewise.poly.fit, "Piecewise Polynomial Model (Discontinuous)")
+#Is this correct?
+```
+
+(The different polynomials are joined together as they are a part of a single geom_line layer in the ggplot call. A closer look at the knots shows that it is indeed two polynomials joined together by a line segment)
+
+### (d) cubic spline
+
+```{r}
+cubic.spline.fit <- lm(wage ~ bs(age, knots = c(17,33,50,70)), data = Wage, subset = train)
+plot.fit(cubic.spline.fit, "Cubic Spline")
+```
+
+### (e) smoothing spline
+
+```{r}
+(smooth.spline.fit1 <- smooth.spline(x = Wage[train, "age"], 
+                                   y = Wage[train, "wage"],
+                                   df = 20))
+(smooth.spline.fit2 <- smooth.spline(x = Wage[train, "age"], 
+                                   y = Wage[train, "wage"],
+                                   cv = TRUE))
+
+spline1 <- data.frame(age = smooth.spline.fit1$x, wage = smooth.spline.fit1$y, 
+                      Model = rep("DF = 20", length(smooth.spline.fit1$x)))
+
+spline2 <- data.frame(age = smooth.spline.fit2$x, wage = smooth.spline.fit2$y, 
+                      Model = rep("CV (DF = 7.05)", length(smooth.spline.fit2$x)))
+
+ggplot()+
+  geom_point(data = Wage[-train,], aes(x=age, y=wage), shape=1, color = "darkgray") +
+  geom_line(data =spline1, aes(x=age, y = wage, color = Model), linetype = 1)+
+  geom_line(data =spline2, aes(x=age, y = wage, color = Model), linetype = 1)+
+  labs(title = "Plot of Test Data and Model Fit", subtitle = "Smoothing Spline")+
+  scale_color_manual(values = c("DF = 20" = "blue", "CV (DF = 7.05)" = "red"))
+```
+
+### (d) Which approach yields the best results on the test set?
+
+Use MSE to determine this? How do we calculate this for spline?
+
+```{r}
+
+```
+
+
+```{r}
+#Cleanup
+rm(list = ls())
+```
+
+
+## 5. Use the ${\tt Auto}$ data set to predict a car’s ${\tt mpg}$. (You should remove the ${\tt name}$ variable before you begin.)
+
+### (a) First, try using a regression tree. You should grow a big tree, and then consider pruning the tree. How accurately does your regression tree predict a car’s gas mileage? Make some figures, and comment on your results.
+
+```{r}
+set.seed(42)
+train <- sample(nrow(Auto), 0.8*nrow(Auto), replace = FALSE)
+
+data <- Auto |> select(-name) |> mutate(origin = as.factor(origin))
+
+tree.auto <- tree(mpg ~ ., data = data, subset = train)
+summary(tree.auto)
+plot(tree.auto)
+text(tree.auto, pretty=0)
+title("Decision Tree Before Any Pruning")
+```
+
+Using cross validation to select the best tree:
+```{r}
+cv.auto <- cv.tree(tree.auto)
+cv.results <- data.frame(size = cv.auto$size, deviance = cv.auto$dev)
+
+ggplot(data = cv.results, aes(x=size, y=deviance))+
+  geom_point()+
+  geom_line()+
+  scale_x_continuous(breaks = seq(0,9))+
+  ggtitle("Tree Size vs Deviance", subtitle = "Calculated using cross-validation")
+```
+
+Using cross-validation we can see that a tree size of 9 provides the best results.
+
+Let us try a pruned tree:
+```{r}
+prune.auto <- prune.tree(tree.auto, best = 5)
+plot(prune.auto)
+text(prune.auto, pretty=0)
+title("Pruned decision tree (with 5 leaf nodes)")
+```
+
+Now, we compare the results
+
+```{r}
+pred.full <- predict(tree.auto, newdata = data[-train,])
+mse.full <- mean((pred.full - data[-train, "mpg"])^2)
+print(paste("MSE on test set for 9-node tree", round(mse.full,2), sep = " = "))
+
+pred.prune <- predict(prune.auto, newdata = data[-train,])
+mse.prune <- mean((pred.prune - data[-train, "mpg"])^2)
+print(paste("MSE for test set pruned tree", round(mse.prune,2), sep = " = "))
+```
+
+
+### (b) Fit a bagged regression tree model to predict a car’s ${\tt mpg}$ How accurately does this model predict gas mileage? What tuning parameter value(s) did you use in fitting this model?
+
+```{r}
+set.seed(42)
+
+bag.auto <- randomForest(mpg ~., data = data, subset = train, 
+                         mtry = ncol(data)-1, importance = TRUE,
+                         ntree = 100, nodesize = 10)
+bag.auto
+
+pred.bag <- predict(bag.auto, newdata = data[-train,])
+mse.bag <- mean((pred.bag - data[-train, "mpg"])^2)
+print(paste("MSE on test set for bagged tree", round(mse.bag,2), sep = " = "))
+```
+
+Tuning parameters used:
+
+- Number of trees (ntrees): 100
+- Minimum size of terminal nodes (nodesize): 10
+
+### (c) Fit a random forest model to predict a car’s ${\tt mpg}$ How accurately does this model predict gas mileage? What tuning parameter value(s) did you use in fitting this model?
+
+```{r}
+set.seed(42)
+
+rf.auto <- randomForest(mpg ~., data = data, subset = train, 
+                         mtry = ncol(data)/2, importance = TRUE,
+                         ntree = 100)
+rf.auto
+
+pred.rf <- predict(rf.auto, newdata = data[-train,])
+mse.rf <- mean((pred.rf - data[-train, "mpg"])^2)
+print(paste("MSE on test set for random forest", round(mse.rf,2), sep = " = "))
+```
+
+Tuning parameters used:
+
+- Number of trees (ntrees): 100
+- Variables tried at each split (mtry): 4
+
+### (d) Fit a generalized additive model (GAM) model to predict a car’s ${\tt mpg}$ How accurately does your GAM model predict a car’s gas mileage? Make some figures to help visualize the fitted functions in your GAM model, and comment on your results.
+
+```{r}
+gam.fit <- gam(mpg ~ s(cylinders) + s(displacement) + s(horsepower) +
+                 s(weight) + s(acceleration) + s(year) + origin,
+               data = data, subset = train)
+summary(gam.fit)
+par(mfrow=c(2,4))
+plot(gam.fit, se=T, col="blue")
+```
+
+Let us calculate MSE:
+```{r}
+pred.gam <- predict(gam.fit, newdata = data[-train,])
+mse.gam <- mean((data[-train,"mpg"] - pred.gam)^2)
+print(paste("MSE on test set for GAM", round(mse.gam,2), sep = " = "))
+```
+
+### (e) Considering both accuracy and interpretability of the fitted model, which of the models in (a)–(d) do you prefer? Justify your answer.
+
+The GAM we generated in (d) using smoothing splines gives us the lowest estimated test MSE and is much more interpretable in terms of how each predictor is related to the response `mpg`.
+
+As compared to the bagged tree and random forest models, is able to clearly show how the relation varies with the value of the predictors. For the former models, the best we can do is get a sense of feature importance, but even then we will not know how the feature affects the response for different ranges of values.
+
+On the other hand, GAM gives us some clear insights:
+
+- Cars from `origin=1` (USA) have the lowest MPG
+- `mpg` has generally increased with `year`
+- increasing `weight` and `horsepower` decrease `mpg` - this decrease slows down when `weight` reaches the 3500 range
+- When `cylinders>4`, more cylinders reduce `mpg`. We can also see clearly that even though there is evidence that `cylinder=3` has the lowest `mpg` there are only 3 observations in that group. 
