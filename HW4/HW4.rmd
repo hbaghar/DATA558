@@ -47,7 +47,72 @@ TODO
 
 ## 3.  Prove that any function of the form $$f(X) = \beta_0 + \beta_1X + \beta_2X^2 + \beta_3X^3 + \beta_4(X - \psi)^3_+$$ is a cubic spline with a knot at $\psi$.
 
-TODO
+We know
+$$
+f(X) = \beta_0 + \beta_1X + \beta_2X^2 + \beta_3X^3 + \beta_4(X - \psi)^3_+ =
+\begin{cases}
+\beta_0 + \beta_1X + \beta_2X^2 + \beta_3X^3 &\text{ if } X \le \psi_1\\
+\beta_0 + \beta_1X + \beta_2X^2 + \beta_3X^3 + \beta_4(X - \psi)^3 &\text{ if } X \gt \psi_1\\
+\end{cases}
+$$
+
+
+We need to prove the following about $f(X)$ to show that it is a cubic spline:
+
+1. It is continuous
+
+Plugging in the value $X = \psi$ gives us:
+$$
+f(\psi)=
+\begin{cases}
+\beta_0 + \beta_1\psi + \beta_2\psi^2 + \beta_3\psi^3\\
+\beta_0 + \beta_1\psi + \beta_2\psi^2 + \beta_3\psi^3 + \beta_4(\psi - \psi)^3
+\end{cases}
+$$
+
+Since we can see that at $X=\psi$ both cases have the same value, we can conclude that $f(X)$ is continuous
+
+2. It is piecewise cubic with a knot at $\psi$
+
+By definition, we can see that $f(X)$ is a function of polynomials upto the third degree. We also see that the definition of the polynomial function defining $f(X)$ changes at $X > \psi$, which is why it is piecewise with a knot at $\psi$
+
+3. Has a continuous 1st derivative
+
+We compute the first derivative and plug in $X=\psi$ in the two cases to check if it is continuous
+
+$$
+f'(X) = \begin{cases}
+\beta_1 + 2\beta_2X + 3\beta_3X^2 &\text{ if } X \le \psi\\
+\beta_1 + 2\beta_2X + 3\beta_3X^2 + 3\beta_4(X - \psi)^2\times1 &\text{ if } X \gt \psi\\
+\end{cases}
+$$
+
+We see that on plugging in $X=\psi$ both cases will have the same value
+
+$$
+f'(\psi) = \beta_1+2\beta_2\psi+3\beta_3\psi^2
+$$
+
+which proves that the first derivative is continuous.
+
+4. Has a continuous 2nd derivative
+
+We compute the second derivative and plug in $X=\psi$ in the two cases to check if it is continuous
+
+$$
+f''(X) = \begin{cases}
+2\beta_2 + 3\times2\beta_3X &\text{ if } X \le \psi\\
+2\beta_2 + 3\times2\beta_3X + 3\times2\beta_4(X - \psi) &\text{ if } X \gt \psi\\
+\end{cases}
+$$
+
+We see that on plugging in $X=\psi$ both cases will have the same value
+
+$$
+f''(\psi) = 2\beta_2 + 6\beta_3\psi
+$$
+
+which proves that the second derivative is continuous.
 
 ## 4. For this problem, we will use the ${\tt Wage}$ data set that is part of the ${\tt ISLR}$ package. Split the data into a training set and a test set, and then fit using the following models to predict ${\tt Wage}$ using ${\tt Age}$ on the training set. Make some plots, and comment on your results. 
 
