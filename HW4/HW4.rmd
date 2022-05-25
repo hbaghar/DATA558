@@ -452,7 +452,7 @@ On the other hand, GAM gives us some clear insights:
 - increasing `weight` and `horsepower` decrease `mpg` - this decrease slows down when `weight` reaches the 3500 range
 - When `cylinders>4`, more cylinders reduce `mpg`. We can also see clearly that even though there is evidence that `cylinder=3` has the lowest `mpg` there are only 3 observations in that group. 
 
-Given the fact that the GAM offers us the ability to understand underlying relationships in data much more clearly without compromising too much on prediction error, it is a great choice. It is noteworthy that the GAM did not require any sort of parameter tuning either as opposed to the tree-based models. If prediction error is a priority without much concern for interpretability, random forest may be a better bet.
+Given the fact that the GAM offers us the ability to understand underlying relationships in data much more clearly without compromising too much on prediction error, it is a great choice. That being said, if prediction error is a priority without much concern for interpretability, random forest may be a better bet.
 
 ```{r, include = FALSE}
 #Cleanup
