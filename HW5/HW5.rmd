@@ -14,6 +14,7 @@ _On this assignment, some of the problems involve random number generation. Be s
 library(ISLR2)
 library(MASS)
 library(ggplot2)
+library(e1071)
 ```
 
 
@@ -60,8 +61,8 @@ TODO
 
 ```{r}
 set.seed(42)
-mu <- c(1,2,3)
-var <- matrix(c(4, 0.5, 0.7, 0.5, 4, 0.6, 0.7, 0.6, 4), 3,3)
+mu <- c(0,2,4)
+var <- matrix(c(10, 0.5, 0.7, 0.5, 20, 0.6, 0.7, 0.6, 40), 3,3)
 
 raw.data <- mvrnorm(n = 1000, mu = mu, Sigma = var)
 
@@ -80,7 +81,8 @@ data <- data.frame(rbind(
 ```{r}
 pca <- prcomp(data[,-c(51)])
 
-pca.data <- data.frame(PC1 = pca$x[,"PC1"], PC2 = pca$x[,"PC2"], class = as.factor(data$class))
+pca.data <- data.frame(PC1 = pca$x[,"PC1"], PC2 = pca$x[,"PC2"], 
+                       class = as.factor(data$class))
 
 ggplot(data = pca.data, aes(x=PC1, y=PC2, color=class))+
   geom_point()+
@@ -91,43 +93,73 @@ ggplot(data = pca.data, aes(x=PC1, y=PC2, color=class))+
 ### (c) Perform $K$-means clustering of the observations with $K$ = 3. How well do the clusters that you obtained in $K$-means clustering compare to the true class labels?
 _Hint: You can use the ${\tt table}$ function in ${\tt R}$ to compare the true class labels to the class labels obtained by clustering. Be careful how you interpret the results: $K$-means clustering will arbitrarily number the clusters, so you cannot simply check whether the true class labels and clustering labels are the same._  
 
+We define a function to display the result table and plot the first 2 principal components with the true cluster and assigned cluster to visualize the tabulated results. The colors denote the original cluster from the data generation step and the shapes denote the assigned cluster.
+
 ```{r}
-km.2c <- kmeans(data[,-c(51)], 3, nstart = 20)
-table(km.2c$cluster, data[,"class"])
+get.cluster.plot <- function(K=3){
+  km <- kmeans(data[,-c(51)], K, nstart = 20)
+  df <- data.frame(pca.data, cluster = as.factor(km$cluster))
+  print(table(km$cluster, data[,"class"]))
+  ggplot(df, aes(x=PC1, y=PC2, shape = as.factor(cluster), color = class))+
+    geom_point()+
+    labs(title="Results of K-Means Clustering", subtitle = paste("K",K,sep="="))
+}
+get.cluster.plot()
 ```
 
-
-We see that K-Means is able to cluster most observations correctly except for 3 misclassifications. It has a 5% error rate.
+We see that one cluster has all 20 observations correctly classified. The other 2 clusters have 10 and 8 misclassifications respectively. The algorithm does not do a good job of identifying the green cluster. The blue cluster is also not captured very well.
 
 ### (d) Perform $K$-means clustering with $K$ = 2. Describe your results.
 
 ```{r}
-km.2d <- kmeans(data[,-c(51)], 2, nstart = 20)
-table(km.2d$cluster, data[,"class"])
+get.cluster.plot(2)
 ```
 
-
+The algorithm counts most green cluster observations in the red cluster (18 of them) and the remaining 2 go in the blue cluster.
 
 ### (e) Now perform $K$-means clustering with $K$ = 4, and describe your results.
 
 ```{r}
-km.2e <- kmeans(data[,-c(51)], 4, nstart = 20)
-table(km.2e$cluster, data[,"class"])
+get.cluster.plot(4)
 ```
+
+Again, the red cluster (with lower variance) is well captured. The extra cluster that the algorithm determines has only 6 observations. The green and blue clusters are once again only partially identified. The blue cluster also appears to have a strange separation which appears to be non-linear in the 2D PCA plot (note the blue triangles and squares).
 
 ### (f) Now perform $K$-means clustering with $K$ = 3 on the first two principal component score vectors, rather than on the raw data. That is, perform $K$-means clustering on the 60 × 2 matrix of which the first column is the first principal component score vector, and the second column is the second principal component score vector. Comment on the results.
 
 ```{r}
 km.2f <- kmeans(pca.data[,-c(3)], 3, nstart = 20)
 table(km.2f$cluster, data[,"class"])
+
+pca.data <- data.frame(pca.data, cluster = as.factor(km.2f$cluster))
+
+ggplot(data = pca.data, aes(x=PC1, y=PC2, color=class, shape=cluster))+
+  geom_point()+
+  labs(title="Results of K-Means Clustering on Scaled Data")
 ```
+
+Using the first to Principal components we see that there is an improvement in identifying the green cluster.
 
 ### (g) Using the scale function, perform $K$-means clustering with $K$ = 3 on the data _after scaling each variable to have standard deviation one_. How do these results compare to those obtained in (b)? Explain
 
 ```{r}
+km.2g <- kmeans(scale(data[,-c(51)]), 3, nstart = 20)
+table(km.2g$cluster, data[,"class"])
 
+
+pca <- prcomp(data.frame(scale(data[,-c(51)])))
+
+
+pca.data <- data.frame(PC1 = pca$x[,"PC1"], PC2 = pca$x[,"PC2"], 
+                       class = as.factor(data$class),
+                       cluster = as.factor(km.2g$cluster))
+
+ggplot(data = pca.data, aes(x=PC1, y=PC2, color=class, shape=cluster))+
+  geom_point()+
+  labs(title="Results of K-Means Clustering on Scaled Data")
 ```
 
+Applying K-means on the scaled data does a better job of identifying the blue cluster and perhaps also the green cluster. It is worth noting that the blue cluster is the one with the largest mean and variance and this result is consistent with the idea of what scaling tries to achieve.
 
 \pagebreak
 
@@ -135,32 +167,141 @@ table(km.2f$cluster, data[,"class"])
 
 ### (a) Create a training set containing a random sample of 800 observations, and a test set containing the remaining observations.
 
-TODO
+```{r}
+set.seed(42)
+train <- sample(nrow(OJ), size = 800, replace = FALSE)
+```
 
 ### (b) Fit a support vector classifier to the training data using ${\tt cost=0.01}$, with ${\tt Purchase}$ as the response and the other variables as predictors. Use the ${\tt summary()}$ function to produce summary statistics, and describe the results obtained.
 
-TODO
+```{r}
+svm.4b <- svm(Purchase ~ ., data = OJ, subset = train, cost = 0.01, kernel = "linear")
+summary(svm.4b)
+```
+
+There were 432 support vectors in this model out of which 215 were assigned to CH and 217 assigned to MM.
 
 ### (c) What are the training and test error rates?
 
-TODO
+```{r}
+#Defining function to reuse
+get.svm.metrics <- function(model){
+  train.preds <- table(predicted = predict(model, OJ[train,]),
+                       true = OJ[train, "Purchase"])
+  print("Confusion matrix: Training data")
+  print(train.preds)
+  train.error <- round(1 - sum(diag(train.preds))/sum(train.preds),2)
+  
+  test.preds <- table(predict(model, OJ[-train,]), OJ[-train, "Purchase"])
+  print("Confusion matrix: Test data")
+  print(test.preds)
+  test.error <- round(1 - sum(diag(test.preds))/sum(test.preds),2)
+  
+  return(c(train.error, test.error))
+}
+
+error <- get.svm.metrics(svm.4b)
+```
+
+Training error rate = `r error[1]`
+Test error rate = `r error[2]`
 
 ### (d) Use the ${\tt tune()}$ function to select an optimal cost. Consider values in the range 0.01 to 10.
 
-TODO
+```{r}
+tune.out <- tune(svm, Purchase ~ ., data = OJ[train,], kernel = "linear",
+                 ranges = list(cost = c(0.01, 0.05, 0.1, 0.5, 1, 5, 10)))
+
+summary(tune.out)
+tune.out$best.parameters$cost
+```
+
+The best cost to use is `r tune.out$best.parameters$cost`.
 
 ### (e) Compute the training and test error rates using this new value for ${\tt cost}$.
 
-TODO
+```{r}
+svm.4e <- svm(Purchase ~ ., data = OJ, kernel = "linear", 
+              cost = tune.out$best.parameters$cost, subset = train)
+summary(svm.4e)
+error <- get.svm.metrics(svm.4e)
+```
+
+The model has 331 support vectors - 166 belong to CH and 165 belong to MM.
+
+Training error rate = `r error[1]`
+Test error rate = `r error[2]`
+
 
 ### (f) Repeat parts (b) through (e) using a support vector machine with a radial kernel. Use the default value for ${\tt gamma}$.
 
-TODO
+Using radial kernel and cost = 0.01:
+
+```{r}
+svm.4f <- svm(Purchase ~ ., data = OJ, subset = train, cost = 0.01, kernel = "radial")
+summary(svm.4f)
+error <- get.svm.metrics(svm.4f)
+```
+
+Training error rate = `r error[1]`
+Test error rate = `r error[2]`
+
+Finding optimal value of cost:
+
+```{r}
+tune.out <- tune(svm, Purchase ~ ., data = OJ[train,], kernel = "radial",
+                 ranges = list(cost = c(0.01, 0.05, 0.1, 0.5, 1, 5, 10)))
+
+summary(tune.out)
+```
+
+Cost = `r tune.out$best.parameters$cost` is the optimal value. Let us fit a model using this value of cost.
+
+```{r}
+svm.4f.best <- svm(Purchase ~ ., data = OJ, subset = train, 
+                   cost = tune.out$best.parameters$cost, kernel = "radial")
+summary(svm.4f.best)
+error <- get.svm.metrics(svm.4f.best)
+```
+
+Training error rate = `r error[1]`
+Test error rate = `r error[2]`
 
 ### (g) Repeat parts (b) through (e) using a support vector machine with a polynomial kernel. Set ${\tt degree=2}$.
 
-TODO
+```{r}
+svm.4g <- svm(Purchase ~ ., data = OJ, subset = train, cost = 0.01, 
+              kernel = "polynomial", degree = 2)
+summary(svm.4g)
+error <- get.svm.metrics(svm.4g)
+```
+
+Training error rate = `r error[1]`
+Test error rate = `r error[2]`
+
+Let us find the optimal value of cost.
+
+```{r}
+tune.out <- tune(svm, Purchase ~ ., data = OJ[train,], 
+                 kernel = "polynomial", degree = 2,
+                 ranges = list(cost = c(0.01, 0.05, 0.1, 0.5, 1, 5, 10)))
+
+summary(tune.out)
+```
+
+The optimal value for cost = `r tune.out$best.parameters$cost`. Let us fit a model using this value.
+
+```{r}
+svm.4g.best <- svm(Purchase ~ ., data = OJ, subset = train,
+              cost = tune.out$best.parameters$cost, kernel = "polynomial", degree = 2)
+summary(svm.4g.best)
+error <- get.svm.metrics(svm.4g.best)
+```
+
+
+Training error rate = `r error[1]`
+Test error rate = `r error[2]`
 
 ### (h) Overall, which approach seems to give the best results on this data?
 
-TODO
+The SVM with a radial kernel with the best value of cost identified through cross validation gives the best result on both the training and test sets.
