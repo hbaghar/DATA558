@@ -24,7 +24,9 @@ _A note before you begin: In this problem, I will ask you to “write out an exp
 
 ### (a) Write out an expression for the linear model that we are fitting in principal components regression. Your answer should involve $y_i, z_{i1}, ... , z_{iM}$ , a mean-zero noise term $\epsilon_i$, and some coefficients.
 
-TODO
+$$
+Y = \beta_0+
+$$
 
 ### (b) Now plug in Equation 1 from this homework to your answer from (a), in order to express the principal components regression model in terms of $x_{i1}, ... , x_{ip}$.
 
