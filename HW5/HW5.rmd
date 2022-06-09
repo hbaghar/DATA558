@@ -1,7 +1,7 @@
 ---
 title: 'DATA 558: HW Assignment 5'
 author: 'Hriday Baghar'
-date: 'Jun 1, 2022'
+date: 'Jun 9, 2022'
 output: pdf_document
 ---
 
@@ -25,22 +25,29 @@ _A note before you begin: In this problem, I will ask you to “write out an exp
 ### (a) Write out an expression for the linear model that we are fitting in principal components regression. Your answer should involve $y_i, z_{i1}, ... , z_{iM}$ , a mean-zero noise term $\epsilon_i$, and some coefficients.
 
 $$
-y_i = \beta_0 + \sum_{m=1}^{M} \beta_mz_m + \varepsilon_i, \ \ \ i=1,...,n
+y_i = \beta_0 + \beta_1z_{i1}+ \beta_2z_{i2}+...+ \beta_Mz_{iM} + \varepsilon_i, \ \ \ i=1,...,n
 $$
 
-where $\beta_0,...,\beta_m$ are the regression coefficients fit using least sqaures.
+where $\beta_0,...,\beta_m$ are the regression coefficients fit using least squares and M is the number of principal components and $z_{i1},...,z_{iM}$ are the principal components for observation $i$.
 
 ### (b) Now plug in Equation 1 from this homework to your answer from (a), in order to express the principal components regression model in terms of $x_{i1}, ... , x_{ip}$.
 
-TODO
+
+\begin{equation}
+\begin{split}
+y_i = &\beta_0 + \beta_1(\phi_{11}x_{i1}+\phi_{21}x_{i2}+...+\phi_{p1}x_{ip})+... \\
+&+ \beta_M(\phi_{1M}x_{i1}+\phi_{2M}x_{i2}+...+\phi_{pM}x_{ip}) + \varepsilon_i, \ \ \ i=1,...,n
+\end{split}
+\end{equation}
+
 
 ### (c) Use your answer from (b) to argue that the principal components regression model is linear in the columns of $X$.
 
-TODO
+We see that the above expression is still a linear combination of $\beta$, which is what we mean when we say that the model is linear. For example for $x_{i1}$ we have a coefficient $\beta_1\phi_{11}+\beta_2\phi_{12}+...+\phi_{1M}\beta_M$. This is still a linear combination of $\beta$, hence it is linear in the columns of $X$.
 
 ### (d) In light of your answer to (c), is the following claim true? Explain your answer. _Claim: Fitting a linear model to predict $y$ using the first $m$ principal components will yield the same fitted values as fitting a linear model to predict $y$ using the columns of $X$._
 
-TODO
+The given claim is not always true. In cases where the number of principal components is less than the number of features i.e. $M<p$ the results will not be the same. This is because, using lesser principal components will change the expression of the coefficient for each $x_{ip}$ as we can see from the expression in (c). This makes sense because each principal component is able to explain a certain percentage of variance in the data, and reducing the number of principal components in principal components regression will be fit on a dataset with reduced dimensions, giving different coefficient estimates.
 
 \pagebreak
 
