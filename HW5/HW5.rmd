@@ -25,8 +25,10 @@ _A note before you begin: In this problem, I will ask you to “write out an exp
 ### (a) Write out an expression for the linear model that we are fitting in principal components regression. Your answer should involve $y_i, z_{i1}, ... , z_{iM}$ , a mean-zero noise term $\epsilon_i$, and some coefficients.
 
 $$
-Y = \beta_0+
+y_i = \beta_0 + \sum_{m=1}^{M} \beta_mz_m + \varepsilon_i, \ \ \ i=1,...,n
 $$
+
+where $\beta_0,...,\beta_m$ are the regression coefficients fit using least sqaures.
 
 ### (b) Now plug in Equation 1 from this homework to your answer from (a), in order to express the principal components regression model in terms of $x_{i1}, ... , x_{ip}$.
 
@@ -51,59 +53,75 @@ TODO
 - Verify that the left- and right-hand sides are equal. (If they aren’t, then you have done something wrong!)
 
 
-Let us generate the data matrix and clusters:
+We define functions to repeatedly create the data matrix, calculate LHS and RHS.
 
 ```{r}
 set.seed(42)
-mu <- c(0,5,-1)
-var <- matrix(c(2, 0.8, 0.9, 0.8, 5, 1, 0.9, 1, 3), nrow = 3, ncol = 3)
-
-cluster <- sample(seq(1,4), size = 100, replace = TRUE)
-
-data <- cbind(mvrnorm(n = 100, mu = mu, Sigma = var), cluster)
+sim.data <- function(p,k,n) {
+  mu <- sample(seq(-10:10), p, replace = TRUE)
+  A <- matrix(runif(p^2)*2-1, ncol=p) 
+  var <- t(A) %*% A
+  cluster <- sample(seq(1,k), n, replace = TRUE)
+  
+  data <- cbind(mvrnorm(n = n, mu = mu, Sigma = var), cluster)
+  
+  return(data)
+}
 ```
 
-Now let us compute the left-side of the given equality
+Now let us compute the LHS of the given equality,
 
 ```{r}
-
-get.cluster.lhs <- function(c){
+get.cluster.lhs <- function(c,data){
   sum <- 0
-  x <- data[data[,4]==c,-c(4)]
+  x <- data[data[,ncol(data)]==c,-c(ncol(data))]
+  
   for(i in 1:nrow(x)){
     for(i1 in 1:nrow(x)){
-      for(j in 1:ncol(x)){
-        sum <- sum + (x[i,j]-x[i1,j])^2
-      }
+      sum <- sum + sum((x[i,]-x[i1,])^2)
     }
   }
-  return(sum)
+  return(sum*1/nrow(x))
 }
-(lhs <- sum(sapply(1:4, function(x) get.cluster.lhs(x)))/4)
 ```
-
 
 And now RHS,
 
 ```{r}
-get.cluster.rhs <- function(c){
+get.cluster.rhs <- function(c,data){
   sum <- 0
-  x <- data[data[,4]==c,-c(4)]
+  x <- data[data[,ncol(data)]==c,-c(ncol(data))]
   for(i in 1:nrow(x)){
       for(j in 1:ncol(x)){
         sum <- sum + (x[i,j] - mean(x[,j]))^2
       }
   }
-  return(sum)
+  return(sum*2)
 }
-(rhs <- sum(sapply(1:4, function(x) get.cluster.rhs(x)))*2)
 ```
 
 
+Using the above 3 functions we repeat the experiment 1000 times.
+
+```{r}
+perform.experiment <- function(){
+  n <- sample(50:100, 1)
+  p <- sample(5:10, 1)
+  k <- sample(2:5, 1)
+  
+  data <- sim.data(p,k,n)
+  
+  lhs <- sapply(1:k, function(x) get.cluster.lhs(x,data))
+  rhs <- as.vector(sapply(1:k, function(x) get.cluster.rhs(x,data)))
+  
+  return(all.equal(lhs,rhs))
+}
+results <- replicate(1000, perform.experiment())
+#If below result is true then we know the equality holds
+all.equal(results, rep(TRUE,1000))
+```
 
 ### (b) _Extra Credit_: Show _analytically_ that (12.18) holds. In other words, use algebra to prove (12.18).
-
-TODO
 
 \pagebreak
 
@@ -190,7 +208,7 @@ ggplot(data = pca.data, aes(x=PC1, y=PC2, color=class, shape=cluster))+
   labs(title="Results of K-Means Clustering on Scaled Data")
 ```
 
-Using the first to Principal components we see that there is an improvement in identifying the green cluster.
+Using the first two Principal components we see that there is an improvement in identifying the green cluster.
 
 ### (g) Using the scale function, perform $K$-means clustering with $K$ = 3 on the data _after scaling each variable to have standard deviation one_. How do these results compare to those obtained in (b)? Explain
 
